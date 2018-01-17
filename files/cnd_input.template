@@ -1,0 +1,14 @@
+<< Condense decay data >>
+CLOBBER
+MONITOR 1
+SAVELINES << preserve gamma lines >>
+NOFISS    << Do not include fission data >>
+NOHEADER  << do not repeat heading output >>
+
+GETDECAY 1 << condense decay data >>
+
+FISPACT
+* Condense decay data
+
+END
+* Condense calculations

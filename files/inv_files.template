@@ -1,0 +1,19 @@
+# Directory pathes below assume that the current directory
+# contains fispact-data subdirectory
+#
+
+# Needed at this step. Copied from 1.condense
+ind_nuc ./fispact-data/EAF2010data/eaf_index_20100
+
+collapxi collapx
+
+arrayx arrayx
+ 
+# Needed at inventory calculation stage
+# Gamma attenuation data
+absorp ./fispact-data/EAF2007data/eaf_abs_20070 
+
+
+
+
+

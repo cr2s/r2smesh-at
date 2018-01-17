@@ -1,0 +1,408 @@
+diff -Naur -X exclude_patterns mcnp5-orig/bin/fpp mcnp5-r2s-dgs/bin/fpp
+--- mcnp5-orig/bin/fpp	2014-12-01 13:34:32.000000000 +0100
++++ mcnp5-r2s-dgs/bin/fpp	2017-12-21 11:56:33.000000000 +0100
+@@ -87,11 +87,11 @@
+ $verbose = 0;
+ #
+ # MCNP6 defaults:  -nomacros  -blanks
+-    $macro_substitute = 0;
+-    $blanks  = 1;
++#   $macro_substitute = 0;
++#   $blanks  = 1;
+ # MCNP5 defaults:  -macros  -noblanks
+-#   $macro_substitute = 1;
+-#   $blanks  = 0;
++    $macro_substitute = 1;
++    $blanks  = 0;
+ #
+ ##### get args
+ #
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/dgs.F90 mcnp5-r2s-dgs/Source/src/dgs.F90
+--- mcnp5-orig/Source/src/dgs.F90	1970-01-01 01:00:00.000000000 +0100
++++ mcnp5-r2s-dgs/Source/src/dgs.F90	2018-01-16 21:42:09.000000000 +0100
+@@ -0,0 +1,169 @@
++! author: anton.travleev@kit.edu
++
++module dgs_module
++    ! The module defines the array dgs containing spatial and energy
++    ! distribution of the decay gamma source, and subroutines to read
++    ! the source.tNN files (from R2Smesh implementation by KIT)
++
++    ! The dgs array is implemented similar to the xss array defined in mcnp_global module.
++
++    use mcnp_params, only: dknd, iuo
++    use mcnp_debug, only: idum
++    use dynamic_arrays, only: get_mem
++    use mcnp_global, only: ink
++    use messages, only: msg_get, msg_put
++
++
++    implicit none
++    public
++
++    ! Variables, read from the dgs file
++    integer :: dgs_nc  ! number of spatial mesh cells
++    integer :: dgs_i   ! time index of the loaded dgs
++    integer:: dgs_nx, dgs_ny, dgs_nz  ! number of bins in each mesh direction
++    real(dknd), pointer:: dgs_x(:), dgs_y(:), dgs_z(:)   ! mesh bin coordinates
++
++    integer, parameter :: dgs_ne = 25  ! number of energy group bins, including 0.0.
++
++    ! array parameter definition mimics definition of mfiss from mcnp_data.F90
++    real(dknd), parameter :: dgs_eb(dgs_ne) = &  ! Energy bins upper boundaries
++        & (/   0.0,   0.01,   0.02,   0.05,   0.1,    & 
++        &      0.2,   0.3,    0.4,    0.6,    0.8,    &
++        &      1.0,   1.22,   1.44,   1.66,   2.0,    & 
++        &      2.5,   3.0,    4.0,    5.0,    6.50,   &
++        &      8.0,  10.0,   12.0,   14.0,   20.0      /)     
++
++    ! dgs is a pointer array, similar to xss in mcnp_global
++    real(dknd), pointer :: &
++        & dgsi(:,:)         ! dgs intensities, spatial mesh element, energy bin
++    integer, pointer:: & 
++        & dgsc(:,:)         ! mesh element indices, coordinate index (x, y, z), spatial mesh element
++
++
++    character :: dgs_mod*20
++
++    CONTAINS
++    subroutine dgs_msg_get
++        ! call this subroutine where msg_get(idum
++        write(*, *) 'Getting dgs'
++        call msg_get(dgs_nx)
++        call msg_get(dgs_ny)
++        call msg_get(dgs_nz)
++        call get_mem('dgs_x', dgs_x, 1, dgs_nx)
++        call get_mem('dgs_y', dgs_y, 1, dgs_ny)
++        call get_mem('dgs_z', dgs_z, 1, dgs_nz)
++        call msg_get(dgs_nc)
++        call get_mem("dgsi", dgsi, 1, dgs_nc, 1, dgs_ne)
++        call get_mem("dgsc", dgsc, 1, 3, 1, dgs_nc)
++        call msg_get(dgs_x, 1, size(dgs_x))
++        call msg_get(dgs_y, 1, size(dgs_y))
++        call msg_get(dgs_z, 1, size(dgs_z))
++        call msg_get(dgsi, 1, size(dgsi))
++        call msg_get(dgsc, 1, size(dgsc))
++        call msg_get(dgs_i)
++    end subroutine dgs_msg_get
++
++    subroutine dgs_msg_put
++        ! call this subroutine where msg_get(idum
++        write(*, *) 'Putting dgs'
++        call msg_put(dgs_nx)
++        call msg_put(dgs_ny)
++        call msg_put(dgs_nz)
++        call msg_put(dgs_nc)
++        call msg_put(dgs_x, 1, size(dgs_x))
++        call msg_put(dgs_y, 1, size(dgs_y))
++        call msg_put(dgs_z, 1, size(dgs_z))
++        call msg_put(dgsi, 1, size(dgsi))
++        call msg_put(dgsc, 1, size(dgsc))
++        call msg_put(dgs_i)
++    end subroutine dgs_msg_put
++
++    subroutine dgs_read
++        ! Subroutine reads dgs from file 'source.tNN', where NN is the 1-st entry on IDUM card.
++        ! dgs file name 
++        real(dknd) :: x1, x2, y1, y2, z1, z2, fm
++        integer :: i, j, ix, iy, iz
++
++        write(*, *) 'Reading dgs'
++
++        ! get name of the source.tNN file:
++        ! dgs file name is hardcoded. This is better than specifying time interval in idum, 
++        ! while does not require changes in the input file for computing at multiple times.
++        ! (It is more simple to organize a new calculation folder than change the input file.
++        !  The best way, however, to specify the dgs filename in the commad line, similar 
++        !  to inp = inp run = runtpe, etc.
++
++        ! open file and get 1-st line containing dimensions
++        open(61, file = 'dgs') ! iounit number 61 -- the next free from those defined in mcnp_params
++        read(61, *) dgs_nx, &   ! number of bins in x direction
++                    dgs_ny, &   ! number of bins in y direction
++                    dgs_nz      ! number of bins in z direction
++
++        ! allocate memory
++        call get_mem('dgs_x', dgs_x, 1, dgs_nx)
++        call get_mem('dgs_y', dgs_y, 1, dgs_ny)
++        call get_mem('dgs_z', dgs_z, 1, dgs_nz)
++
++        ! read mesh bin coordinates
++        read(61, *) dgs_x
++        read(61, *) dgs_y
++        read(61, *) dgs_z
++
++        read(61, *) dgs_nc  ! number of fine mesh elements with gamma source
++
++        ! allocate memory
++        call get_mem("dgsi", dgsi, 1, dgs_nc, 1, dgs_ne)
++        write(*, *) "Allcoated dgsi for ", dgs_nc, dgs_ne 
++        call get_mem("dgsc", dgsc, 1, 3, 1, dgs_nc)
++        write(*, *) "Allcoated dgsc for ", 3, dgs_nc
++
++        ! ensure all values are zero (do we need this?)
++        dgsi = 0.0
++        dgsc = 0.0
++
++        ! read the rest of the dgs file
++        do i = 1, dgs_nc
++            read(61, *) dgs_i, dgsc(1, i), dgsc(2, i), dgsc(3, i), (dgsi(i, j), j = 2, dgs_ne)  ! j -- dummy for the time interval index
++        end do
++        close(61)
++        dgs_mod = "Original"
++        if (ink(200) /= 0) then 
++            call prnt_dgs
++        end if
++
++        ! normalize absolute intensities to probabilities, and store the total intensity
++        do i = 1, dgs_nc
++            ! total intensity
++            dgsi(i, 1) = sum(dgsi(i, 2:dgs_ne))
++            
++            ! normlize probabilities to 1
++            dgsi(i, 2:dgs_ne) = dgsi(i, 2:dgs_ne)/dgsi(i, 1)
++            ! cumulative probabilites
++            do j = 3, dgs_ne
++                dgsi(i, j) = dgsi(i, j-1) + dgsi(i, j)
++            end do
++        end do    
++        dgs_mod = "Modified"
++        if (ink(200) /= 0) then 
++            call prnt_dgs
++        end if
++
++        dgsi(:, 1) = dgsi(:, 1) * float(dgs_nc)  ! TODO: write about normalization
++
++        return
++
++    end subroutine dgs_read
++
++    subroutine prnt_dgs
++        ! print out dgsi 
++        integer :: i
++        write(iuo, '("1DGS content", a30, 30x, "print table DGS")') dgs_mod
++        do i = 1, dgs_nc
++            write(iuo, '(3i6, 5x, 1p<dgs_ne>e13.5)') dgsc(:, i), dgsi(i, :)
++        end do
++
++    end subroutine prnt_dgs
++
++end module dgs_module
++
++
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/FILE.list mcnp5-r2s-dgs/Source/src/FILE.list
+--- mcnp5-orig/Source/src/FILE.list	2014-12-01 13:34:32.000000000 +0100
++++ mcnp5-r2s-dgs/Source/src/FILE.list	2018-01-11 14:21:55.000000000 +0100
+@@ -31,7 +31,9 @@
+ lx5_mod.F90  main.F90     mapmaz.F90   matmpy.F90   mbody.F90    \
+ mbodyo.F90   mbodyp.F90   mbodyr.F90   mbodys.F90   mcnp_random.F90 \
+ mcplot_module.F90 \
+-mcrun.F90    mctalw.F90   messages.F90  mgacol.F90   mgcoln.F90   mgcolp.F90   \
++mcrun.F90    mctalw.F90   messages.F90  \
++dgs.F90 \
++mgacol.F90   mgcoln.F90   mgcolp.F90   \
+ mgimps.F90   mgxspt.F90   midpnt.F90   movlat.F90   msgcon.F90   msgtsk.F90   \
+ namchg.F90   namrsd.F90   newcd1.F90   newcel.F90   newcrd.F90   nextit.F90   \
+ norma.F90    normh.F90    nsf.F90      nxtit1.F90   nxtsym.F90   oldcd1.F90   \
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/imcn.F90 mcnp5-r2s-dgs/Source/src/imcn.F90
+--- mcnp5-orig/Source/src/imcn.F90	2014-12-01 13:34:32.000000000 +0100
++++ mcnp5-r2s-dgs/Source/src/imcn.F90	2018-01-17 11:30:27.000000000 +0100
+@@ -16,6 +16,8 @@
+   use uran_mod,     only : uran_allocate, uran_n, uran_univ, uran_xyz
+   use kadjoint_mod, only : do_any_kadjoint, kadjoint_init, kadjoint_setup
+ 
++  use dgs_module, only: dgs_read
++
+   implicit real(dknd) (a-h,o-z)
+ 
+   integer :: i, ip, ir, it, iu, j, k, la, m, mt, n, ne, nl, nn
+@@ -44,6 +46,8 @@
+ 
+   endif
+ 
++  call dgs_read
++
+   ! Clean up for both initial and continue runs.
+   call ufiles
+   close(iu1)
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/msgcon.F90 mcnp5-r2s-dgs/Source/src/msgcon.F90
+--- mcnp5-orig/Source/src/msgcon.F90	2014-12-01 13:34:32.000000000 +0100
++++ mcnp5-r2s-dgs/Source/src/msgcon.F90	2018-01-17 11:30:57.000000000 +0100
+@@ -21,6 +21,8 @@
+   use qttyin_mod, only: qttyin
+   use erprnt_mod, only: erprnt, erprnt_i8_k1
+ 
++  use dgs_module, only: dgs_msg_put
++
+   implicit real(dknd) (a-h,o-z)
+ 
+   real(dknd), parameter ::  dt = 120.d0
+@@ -152,6 +154,8 @@
+   call msg_put( rdum,    1,  n_rdum  )
+   call msg_put( idum,    1,  n_idum  )
+ 
++  call dgs_msg_put
++
+   call msg_put(  gephcm(1: nephcm), 1,  nephcm )
+   call msg_put( i8ephcm(1:l8ephcm), 1, l8ephcm )
+   call msg_put(  jephcm(1: lephcm), 1,  lephcm )
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/msgtsk.F90 mcnp5-r2s-dgs/Source/src/msgtsk.F90
+--- mcnp5-orig/Source/src/msgtsk.F90	2014-12-01 13:34:32.000000000 +0100
++++ mcnp5-r2s-dgs/Source/src/msgtsk.F90	2018-01-17 11:31:23.000000000 +0100
+@@ -21,6 +21,8 @@
+   use uran_mod,  only :  uran_msgget 
+   use kadjoint_mod, only : do_any_kadjoint, kadjoint_msgget, kadjoint_msgtsk, kadjoint_msgtsk_new
+ 
++  use dgs_module, only: dgs_msg_get
++
+   implicit real(dknd) (a-h,o-z)
+ 
+   integer            ::  mn 
+@@ -64,6 +66,8 @@
+   call msg_get( rdum,    1, n_rdum  )
+   call msg_get( idum,    1, n_idum  )
+ 
++  call dgs_msg_get
++
+   call msg_get(  gephcm(1: nephcm), 1,  nephcm )
+   call msg_get( i8ephcm(1:l8ephcm), 1, l8ephcm )
+   call msg_get(  jephcm(1: lephcm), 1,  lephcm )
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/source.F90 mcnp5-r2s-dgs/Source/src/source.F90
+--- mcnp5-orig/Source/src/source.F90	2014-12-01 13:34:32.000000000 +0100
++++ mcnp5-r2s-dgs/Source/src/source.F90	2018-01-16 21:41:21.000000000 +0100
+@@ -1,5 +1,6 @@
+ !+ $Id: source.F90,v 1.2 2006/10/03 02:10:16 mashnik Exp $
+ ! Copyright LANS/LANL/DOE - see file COPYRIGHT_INFO
++! author: anton.travleev@kit.edu
+ 
+ subroutine source
+   ! dummy subroutine.  aborts job if source subroutine is missing.
+@@ -8,12 +9,126 @@
+   ! following variables must be defined within the subroutine:
+   ! xxx,yyy,zzz,icl,jsu,erg,wgt,tme and possibly ipt,uuu,vvv,www.
+   ! subroutine srcdx may also be needed.
++
++  ! Source photon parameters (position, energy, weight) are sampled
++  ! from the data in dgsi array in the dgs_module.
++
+   use mcnp_global
+   use mcnp_debug
++  use dgs_module
+ 
+   implicit real(dknd) (a-h,o-z)
+ 
+-  ! 
+-  call expirx(0,'source','you need a source subroutine.')
++  integer:: Nii  ! number of trials to find coordinate in material for mesh element ii
++
++
++  ! sample mesh element from [1, dgs_nc]
++  ! int() truncates the rational part, 
++  ! see https://gcc.gnu.org/onlinedocs/gfortran/INT.html
++  ii = int(rang() * dgs_nc) + 1
++  Nii = 0
++
++10 continue ! goto cycle, buee
++  Nii = Nii + 1
++  ! we fire photons from a volume at time 0, in real world coordinate system
++  ipt = 2
++  jsu = 0
++  tme = 0
++
++  ! lev impacts the result of levcel. If not given here, levcel fills udt array improperly
++  ! and mcnp assumes that particle is not on the "real-world" level. This can be checked on 
++  ! print table 110.
++  lev = 0
++
++
++  ! sample coordinates within mesh element ii
++  ! dgsc(:,ii) -- mesh element indices, dgs_x, dgs_y and dgs_z -- bin coordinates.
++  xxx = dgs_x(dgsc(1, ii)) + rang() * (dgs_x(dgsc(1, ii) + 1) - dgs_x(dgsc(1, ii))) 
++  yyy = dgs_y(dgsc(2, ii)) + rang() * (dgs_y(dgsc(2, ii) + 1) - dgs_y(dgsc(2, ii)))
++  zzz = dgs_z(dgsc(3, ii)) + rang() * (dgs_z(dgsc(3, ii) + 1) - dgs_z(dgsc(3, ii)))
++
++  ! Accept xxx, yyy and zzz only if in a cell with material
++  ! Code do define the cell number, where (xxx, yyy, zzz) lies in, is taken from sourcb.F90, label 470
++  ! All return are replaced with goto 550
++
++  ! variables used below are (description taken from MCNP developer's guide):
++  ! junf -- flag to use repeated structures
++  ! jun  -- Universe number of each cell
++  ! nlse -- Number of cells in the LSE list
++  ! lse  -- Cells where source particles have appeared 
++  ! klse -- Task offset for LSE array
++  ! mxa  -- Number of cells in the problem
++  ! mfl  -- Fill data for each cell.
++  ! udt  -- Particle location, direction at higher levels
++  !
++  ! functions used below:
++  ! chkcel(i, 2, j) -- return j=0 if xyz in the cell i.
++  ! levcel -- Set up udt and icl for a particle at a multilevel location
++  if( junf==0 ) then
++    do m=1,nlse
++      icl = lse(klse+m)
++      call chkcel(icl,2,j)
++      if( j==0 )  goto 550
++    end do
++    do icl_tmp=1,mxa
++      icl = icl_tmp
++      call chkcel(icl,2,j)
++      if( j==0 )  go to 540
++    end do
++    icl = icl_tmp
++  else
++    do m=1,nlse
++      icl = lse(klse+m)
++      if( jun(icl)/=0 )  cycle
++      call chkcel(icl,2,j)
++      if( j==0 ) then
++        if( mfl(1,icl)/=0 )  call levcel
++        goto 550
++      endif
++    end do
++    do icl_tmp=1,mxa
++      icl = icl_tmp
++      if( jun(icl)/=0 )  cycle
++      call chkcel(icl,2,j)
++      if( j==0 )  go to 540
++    end do
++    icl = icl_tmp
++  endif
++  call expirx(1,'sourcb','source point is not in any cell.')
++  goto 550
++540 continue
++  nlse = nlse+1
++  lse(klse+nlse) = icl
++  if( junf==0 )  goto 550
++  if( mfl(1,icl)==0 )  goto 550
++  call levcel
++
++550 continue
++  ! accept xyz only if in material:
++  if (mat(icl) == 0) goto 10 
++
++  ! sample particle energy
++  r = 1.0 - rang()  ! ensure r is non-zero
++  do jj = 2, dgs_ne
++    if (r .le. dgsi(ii, jj)) then 
++        exit
++    end if
++  end do
++  ! jj now is the energy interval index, with boundaries dgs_eb(jj-1) and dgs_eb(jj).
++  ! Sample energy uniformy within this interval:
++  erg = dgs_eb(jj-1) + rang() * (dgs_eb(jj) - dgs_eb(jj-1))
++
++  ! Set weight equal to the total intensity:
++  wgt = dgsi(ii, 1) 
++
++  ! report to the user
++  ! write(1024 + mynum, '(i6, 3i4, \)') ii, dgsc(:, ii)
++  ! write(1024 + mynum, '(3(5x, 1p2e13.5, 1pe16.5), \)') dgs_x(dgsc(1, ii): dgsc(1, ii)+1), xxx, & 
++  !                                                      dgs_y(dgsc(2, ii): dgsc(2, ii)+1), yyy, & 
++  !                                                      dgs_z(dgsc(3, ii): dgsc(3, ii)+1), zzz 
++  ! write(1024 + mynum, '(5x, i3, 5x, 1p2e13.5, 1pe16.5, 5x, 1pe13.5, \)') jj, dgs_eb(jj-1:jj), erg, wgt
++  ! write(1024 + mynum, '(5x, i5)') Nii
++
+   return
++
+ end subroutine source

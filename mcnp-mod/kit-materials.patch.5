@@ -1,0 +1,1640 @@
+diff -Naur -X exclude_patterns mcnp5-orig/bin/fpp mcnp5-r2s-mat/bin/fpp
+--- mcnp5-orig/bin/fpp	2014-12-01 13:34:32.000000000 +0100
++++ mcnp5-r2s-mat/bin/fpp	2017-12-10 01:50:07.000000000 +0100
+@@ -87,11 +87,11 @@
+ $verbose = 0;
+ #
+ # MCNP6 defaults:  -nomacros  -blanks
+-    $macro_substitute = 0;
+-    $blanks  = 1;
++#   $macro_substitute = 0;
++#   $blanks  = 1;
+ # MCNP5 defaults:  -macros  -noblanks
+-#   $macro_substitute = 1;
+-#   $blanks  = 0;
++    $macro_substitute = 1;
++    $blanks  = 0;
+ #
+ ##### get args
+ #
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/FILE.list mcnp5-r2s-mat/Source/src/FILE.list
+--- mcnp5-orig/Source/src/FILE.list	2014-12-01 13:34:32.000000000 +0100
++++ mcnp5-r2s-mat/Source/src/FILE.list	2018-01-17 10:06:41.000000000 +0100
+@@ -18,6 +18,7 @@
+ echkcl.F90   electr.F90   electron_history.F90      emaker.F90   ephcom.F90   \
+ eqpbbn.F90   erf2.F90     ergimp.F90   erprnt.F90   errprn.F90   escat.F90    eventp.F90   \
+ exemes.F90   exmg.F90     expire.F90   expirx.F90   expung.F90   extran.F90   \
++findcells.F90 fispact_mod.F90 tblCMI.F90 \
+ fastdr.F90   ffetch.F90   findel.F90   findlv.F90   finpht.F90   fixcom.F90   \
+ flaug_elec.F90            flaug_phot.F90            forcol.F90   fshort.F90   \
+ getexm.F90   getidt.F90   getpar.F90   getxs.F90    getxst.F90   ginst.F90    \
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/findcells.F90 mcnp5-r2s-mat/Source/src/findcells.F90
+--- mcnp5-orig/Source/src/findcells.F90	1970-01-01 01:00:00.000000000 +0100
++++ mcnp5-r2s-mat/Source/src/findcells.F90	2017-12-19 11:38:25.000000000 +0100
+@@ -0,0 +1,120 @@
++subroutine findcells(iptc,xmin,xmax,ymin,ymax,zmin,zmax,kcells, istt)
++    ! PP (rmc_mod.F90 => rmcsor)
++    use mcnp_global
++    use mcnp_debug
++    use mcnp_random
++    parameter (max_find_cells=20,istat=100)
++    implicit real(dknd) (a-h,o-z)
++    integer,dimension(max_find_cells,2) :: kcells
++    integer, intent(out) :: istt
++
++    kcells=0
++
++    ! Use 1-st entry in IDUM card as the number of points per 1cm3.
++    if (idum(1) /= 0) then
++        istt = idum(1)
++    else
++        istt = istat
++    end if
++
++    vvcl=abs((xmax-xmin)*(ymax-ymin)*(zmax-zmin))
++    knst=vvcl*istt                ! x particles/cm3    
++    nhit=0
++    ! write(*,*)'iptc=',iptc
++    do lst = 1, knst  ! total number of points to sample
++        r1=rang()
++        r2=rang()
++        r3=rang()
++        xxx=xmin+r1*(xmax-xmin)
++        yyy=ymin+r2*(ymax-ymin)
++        zzz=zmin+r3*(zmax-zmin)
++        lev = 0
++        j=1
++
++        ! default for cel:  find the cell that contains xyz.
++        if( junf==0 ) then
++            do m = 1, nlse
++                icl = lse(klse+m)
++                jsu = 0
++                call chkcel(icl,2,j)
++                ! cell's importance is not checked. Since we only collect cells in the mesh's element.
++                ! Skipping cells of zero importance will affect volume fractions, computed as n/knst.
++                ! !   don't allow particle to start in zero-importance region
++                ! if( j==0 .and. fim(iptc,icl)==0 )  cycle
++                if( j==0 )  go to 900
++            enddo
++            do icl_tmp = 1, mxa
++                icl = icl_tmp
++                jsu = 0
++                call chkcel(icl,2,j)
++                ! !   don't allow particle to start in zero-importance region
++                ! if( j==0 .and. fim(iptc,icl)==0 )  cycle
++                if( j==0 )  go to 540
++            enddo
++            icl = icl_tmp
++        else
++            ! first, look among the cells, where the source has already been started
++            ! from.
++            do m = 1,nlse
++                icl = lse(klse+m)
++                if( jun(icl)/=0 )  cycle
++                jsu = 0  ! program number of the current surface. Affects output of chkcel: if jsu is a surface of icl, direction is tested as well.
++                call chkcel(icl,2,j)  ! j - output. If 0, xxx,yyy,zzz is in icl.
++                if( j/=0 )  cycle
++                if( mfl(1,icl)/=0 )  call levcel  ! if cell icl is filled, levcel changes to icl where particle actually is
++                go to 900
++            enddo
++            ! look among all other cells
++            do icl_tmp = 1,mxa
++                icl = icl_tmp
++                if( jun(icl)/=0 )  cycle
++                jsu = 0
++                call chkcel(icl,2,j)
++                !   don't allow particle to start in zero-importance region
++                ! if( j==0 .and. fim(iptc,icl)==0 )  cycle
++                if( j==0 )  go to 540
++            enddo
++            icl = icl_tmp
++        endif
++        call expirx(1,'sourcb','Point is not in any cell.')
++        cycle
++ 
++540     continue
++        nlse = nlse+1
++        lse(klse+nlse) = icl
++        if( junf/=0 ) then
++            if( mfl(1,icl)/=0 ) then
++                call levcel
++            endif
++        endif
++ 
++900     continue
++        nhit=nhit+1
++        iflg7=0
++        do m=1,max_find_cells
++            if(kcells(m,1) == icl) then
++                kcells(m,2)=kcells(m,2)+1
++                iflg7=1
++                exit
++            end if
++        end do
++        if(iflg7 == 1) cycle
++        do m=1,max_find_cells
++            if(kcells(m,1) == 0) then
++                kcells(m,1)=icl
++                kcells(m, 2) = 1
++                exit
++            end if
++        end do        
++    end do
++
++!    write(*,*)'***',nhit
++
++!   do m=1,max_find_cells
++!      ratmat=float(kcells(m,2))/float(knst)
++!      knmat=mat(kcells(m,1))
++!      if(kcells(m,2) /= 0) write(*,*)kcells(m,1),ratmat,knmat
++!   end do
++       
++    return
++end subroutine findcells
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/fispact_mod.F90 mcnp5-r2s-mat/Source/src/fispact_mod.F90
+--- mcnp5-orig/Source/src/fispact_mod.F90	1970-01-01 01:00:00.000000000 +0100
++++ mcnp5-r2s-mat/Source/src/fispact_mod.F90	2017-12-15 22:48:35.000000000 +0100
+@@ -0,0 +1,39 @@
++! FISPACT module.
++! Provides data for writing material composition in format suitable for
++! FISPACT
++
++module fispact
++    implicit none
++    public:: f_name, f_get_name
++
++    character (len=2), dimension(112), parameter:: f_name =            & 
++         (/' H', 'He', 'Li', 'Be', ' B', ' C', ' N', ' O', ' F', 'Ne', & 
++           'Na', 'Mg', 'Al', 'Si', ' P', ' S', 'Cl', 'Ar', ' K', 'Ca', & 
++           'Sc', 'Ti', ' V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', & 
++           'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Rb', 'Sr', ' Y', 'Zr', & 
++           'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn', & 
++           'Sb', 'Te', ' I', 'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd', & 
++           'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', & 
++           'Lu', 'Hf', 'Ta', ' W', 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg', & 
++           'Tl', 'Pb', 'Bi', 'Po', 'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th', & 
++           'Pa', ' U', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm', & 
++           'Md', 'No', 'Lr', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds', & 
++           'Rg', 'Cn' /)
++
++    contains
++        function f_get_name(za) result(s)
++            ! Return FISPACT name of nuclide za
++            implicit none
++            integer, intent(in):: za
++            character (len=6):: s
++
++            integer:: z, a
++
++            z = za / 1000
++            a = za - z*1000
++            write(s, '(a2,i3.3)') f_name(z:z), a 
++            return
++        end function f_get_name
++
++
++end module      
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/msgtsk.F90 mcnp5-r2s-mat/Source/src/msgtsk.F90
+--- mcnp5-orig/Source/src/msgtsk.F90	2014-12-01 13:34:32.000000000 +0100
++++ mcnp5-r2s-mat/Source/src/msgtsk.F90	2018-01-16 21:15:07.000000000 +0100
+@@ -1,602 +1,708 @@
+-!+ $Id: msgtsk.F90,v 1.22.2.1 2010/09/20 19:48:23 fbrown Exp $
+-! Copyright LANS/LANL/DOE - see file COPYRIGHT_INFO
+-
+-subroutine msgtsk
+-  ! Description:
+-  ! Called by MPI slave tasks. They never return.
+-  ! 
+-  ! If MPI is not defined, this routine simply returns. 
+-
+-  ! Modules:
+-  use dmmp
+-  use smmp
+-  use mcnp_global
+-  use mcnp_debug
+-  use mcnp_input
+-  use dynamic_arrays
+-  use messages
+-  use fmesh_mod, only :  fmesh_msgget, fmesh_msgtsk
+-  use isotopic_mod, only: isotopic_msgget
+-  use phtvr_mod, only :  phtvr_msgget
+-  use uran_mod,  only :  uran_msgget 
+-  use kadjoint_mod, only : do_any_kadjoint, kadjoint_msgget, kadjoint_msgtsk, kadjoint_msgtsk_new
+-
+-  implicit real(dknd) (a-h,o-z)
+-
+-  integer            ::  mn 
+-  integer            ::  i_send_rssa_file    ! flag for sending rssa file to slave via message passing
+-  integer            ::  i_slave_rssa_status ! flag  for status of slaves ability to read rssa file
+-  real(dknd)         ::  rg(11)
+-  integer(i8knd),allocatable ::  nc(:,:)
+-  integer(i8knd)     ::  i8a, i8b, i8c, i8d, i8i
+-  integer(i8knd)     ::  i_i8, np1_local
+-  character(len=136) ::  hf
+-  logical            ::  file_open
+-#ifdef AIX
+-  logical(4) :: is_assoc
+-#else
+-  logical    :: is_assoc
+-#endif
+-
+-  if( .not.mcnp_opt_mpi ) then
+-    ! Just return, if not using MPI message-passing
+-    return
+-  endif
+-
+-  ! Receive work-exists message.
+-  call dm_bcast(1,iw,1,0,i)
+-  if( iw/=0 ) then
+-    call dm_term ! no work.
+-    stop
+-  endif
+-
+-  ! Subtasks -- receive common blockdata from master task.
+-  call dm_recv(-1,4,i)
+-  call secnd(t1)
+-  call msg_get(  gfixcm(1: nfixcm), 1,  nfixcm )
+-  call msg_get( i8fixcm(1:l8fixcm), 1, l8fixcm )
+-  call msg_get(  jfixcm(1: lfixcm), 1,  lfixcm )
+-
+-  call msg_get(  gvarcm(1: nvarcm), 1,  nvarcm )
+-  call msg_get( i8varcm(1:l8varcm), 1, l8varcm )
+-  call msg_get(  jvarcm(1: lvarcm), 1,  lvarcm )
+-
+-  call msg_get( rdum,    1, n_rdum  )
+-  call msg_get( idum,    1, n_idum  )
+-
+-  call msg_get(  gephcm(1: nephcm), 1,  nephcm )
+-  call msg_get( i8ephcm(1:l8ephcm), 1, l8ephcm )
+-  call msg_get(  jephcm(1: lephcm), 1,  lephcm )
+-
+-  mn = merge( ltasks*30, ltasks,  jtasks>0 )
+-  allocate( nc(0:mn,1:4) )
+-  nc=0
+-
+-  if( mcnp_opt_omp ) then
+-    ! Set up for threading.
+-    call sm_setnt( ntasks )
+-    call sm_linit( nlocks )
+-  endif
+-
+-  ! Receive dynamic common.
+-  call dm_recv(-1,14,i)
+-  call dyn_allocate
+-  call dyn_msgget
+-  call fmesh_msgget
+-  call phtvr_msgget
+-  call uran_msgget
+-  call kadjoint_msgget 
+-  call isotopic_msgget
+-
+-  ! Receive cross section data.
+-  if( lxs>0 ) then
+-    is_assoc = associated(xss)
+-    if( .not. is_assoc )  then
+-      call get_mem( "xss", xss, 1,lxs )
+-    endif
+-    call dm_recv(-1,24,i)
+-    call msg_get( xss,  1,  lxs)
+-  endif
+-
+-  ! Initialize the rest of dynamically allocated common.
+-  !
+-  if( allocated( gbnk        ) )  deallocate( gbnk )
+-  if( allocated( ibnk        ) )  deallocate( ibnk )
+-  if( allocated( tal         ) )  deallocate( tal  )
+-  if( allocated( tal_fircopy ) )  deallocate( tal_fircopy  )
+-
+-  mt = merge( mtasks+1, 1,  mcnp_opt_parallel )
+-
+-  allocate( gbnk( 1:mbnk*mtasks ) )
+-  allocate( ibnk( 0:(nbmx*(lpblcm+2*abs(iunr))+1)*mtasks ) )
+-  allocate( tal(  1:(nmxf*mxf+ktls)*mt ) )
+-  gbnk = 0.0
+-  ibnk = 0
+-  tal  = 0.0
+-  scr  = 0.
+-  ifl  = 0
+-
+-  if( npsmg/=0 ) then
+-    ! second entry of nps-card is nonzero
+-    allocate( tal_fircopy( 1:(nmxf*mxf+ktls) )  )
+-    tal_fircopy = zero
+-  endif
+-
+-  ! Initialize other variables.
+-  ! Initialize workload counters.
+-  nc(0,3) = 0
+-  nc(0,4) = 0
+-
+-  ! Open the outp scratch file.
+-  inquire( unit = iuo, opened = file_open )
+-  if( file_open )  close(iuo)
+-  open(iuo,status='scratch')
+-
+-  ! Receive rssa file from master task.
+-  if( nsr==6 ) then
+-
+-    ! recieve rssa file info
+-    call dm_recv(-1,50,i)
+-    call msg_get( rssa )
+-    call msg_get( nrrs )
+-
+-    ! open and read enough of rssa header for setdas information
+-    inquire( file=rssa, exist=file_exists )
+-    if( file_exists ) then
+-      i_slave_rssa_status = 0
+-    else
+-      i_slave_rssa_status = 1
+-    endif
+-
+-    ! send status of rssa file to master
+-    call dm_sndi
+-    call msg_put( i_slave_rssa_status )
+-    call dm_send(0,51,i)
+-
+-    ! recieve rssa file distribution method from master
+-    call dm_recv(-1,52,i)
+-    call msg_get( i_send_rssa_file )
+-
+-    if( i_send_rssa_file == 0 ) then
+-
+-      ! read rssa file locally 
+-      open( iusr, file=rssa, status='old',form='unformatted')
+-      rewind iusr
+-      read(iusr,end = 930)
+-      read(iusr,end = 930) np1_local, i_i8, j, njsw
+-
+-      if( np1_local < 0_I8KND ) then
+-        read(iusr,end = 930) niwr
+-      endif
+-
+-      do i = 1, njsw+niwr+nrrs+1
+-        read(iusr,end = 930)
+-      enddo
+-
+-    else
+-
+-      ! recieve rssa file via message passing
+-      open( iusr, status='scratch',form='unformatted')
+-      rewind iusr
+-      m = 0
+-      call dm_recv(-1,53,i)
+-      ! Mr = max records to send at once.
+-      mr = (lchnk+nrcd-1)/nrcd
+-      do n = 1,nrss-nrrs
+-        call msg_get( ssb,  1,  nrcd )
+-        write(iusr)  (ssb(i),i = 1,nrcd)
+-        if( mod(n,mr)/=0 .or. n>=nrss-nrrs )  cycle
+-        m = m+1
+-        call dm_recv(-1,53+m,i)
+-      enddo
+-      endfile iusr
+-      rewind iusr
+-
+-    endif
+-
+-    read(iusr,end = 930)  (ssb(i),i = 1,nrcd)
+-
+-  endif
+-
+-  ! Subtask finished receiving initialization information.
+-
+-  ! Prepare surface-source write file.
+-  if( issw/=0 ) then
+-    open(iusc,status='scratch',form='unformatted')
+-    rewind iusc
+-    nrsw = 0
+-    nqsw = 0
+-  endif
+-
+-  ! Subtasks done receiving initialization data.
+-  !------------------------------------------------------------
+-
+-  ! Subtasks -- execute the microtasks.
+-
+-110 continue
+-
+-  ! Receive task assignments.
+-  call dm_recv(-1,20,i)
+-  call msg_get( nm )
+-  if( nm==0 )  go to 910   ! finished, exit.
+-
+-  call msgZ_get( nc,  nm+1 )
+-
+-  ! Update variables to the current history.
+-  n1 = nrrs
+-  call dm_recv(-1,4,i)
+-  call msg_get( cp1 )
+-  call msg_get( cp3 )
+-  call msg_get( tdc )
+-  call msg_get( tlc )
+-  call msg_get( trm )
+-  call msg_get(  ddn,    1, 24*ndnd)
+-  call msg_get(  dxd,    1, mipt*24*mxdx)
+-  call msg_get(  gvarcm(1: nvarcm), 1,  nvarcm )
+-  call msg_get( i8varcm(1:l8varcm), 1, l8varcm )
+-  call msg_get(  jvarcm(1: lvarcm), 1,  lvarcm )
+-  call msg_get( nbal,    1, size(nbal))
+-  call msg_get( rdum,    1, n_rdum  )
+-  call msg_get( idum,    1, n_idum  )
+-  if( nsr==71 .and. nss==0 ) call msg_get( fso,  1,  nfso_items*msrk )
+-
+-  if ( do_any_kadjoint ) then
+-    call kadjoint_msgtsk_new
+-  endif
+-
+-  if( nps>=npsmg .and. npsmg/=0 ) then
+-    ! receive tallies in chunks
+-    do l = 1+mxf, mxf*nmxf, lchnk
+-      n = min( lchnk, mxf*nmxf-l+1 )
+-      call dm_recv(-1,4,i)
+-      call msg_get( tal_fircopy, l, n )
+-    enddo
+-  endif
+-
+-  ! Initialize various variables for this rendezvous.
+-  nc(1:nm,2) = 0
+-  is    = ist
+-  irt   = 50
+-  itask = 0     ! flag, to control utask & vtask.
+-  nbov  = 0
+-  nqsw  = 0
+-  nrsw  = 0
+-  nsl(1:2+4*mipt, 1:njss+nilw) = 0
+-  nss   = 0
+-  ntbb(1:5, 1:ntal) = 1
+-  nwws(1:2, 1:nww(nips)) = 0
+-  pptme(2) = 0.
+-
+-  ! Prepare various input and output files.
+-  rewind iuo
+-  if( issw/=0 )  rewind iusc
+-  if( nsr==6  ) then
+-    do i = 1,nrrs-n1-1
+-      read(iusr,end = 930)
+-    enddo
+-    if( n1<nrrs .and. nrrs<nrss ) then
+-      read(iusr,end = 930)  (ssb(i),i = 1,nrcd)
+-    endif
+-  endif
+-
+-  ! Clear the swept part of varcom.
+-  gvarcm(1:nvarsw)   = 0.
+-  i8varcm(1:l8varsw) = 0_i8knd
+-  jvarcm(1:lvarsw)   = 0
+-  wgts(1) = huge_float
+-
+-  call RN_init_problem( new_standard_gen = RN_gen_input,     &
+-    &                   new_seed         = RN_seed_input,    &
+-    &                   new_stride       = RN_stride_input,  &
+-    &                   new_part1        = RN_hist_input,    &
+-    &                   output = .false. )
+-
+-  do
+-
+-    ! Receive the next microtask assignment.
+-    call dm_recv(-2,31,i)
+-    call msg_get( mt )
+-
+-    if( mt>nm )  cycle       ! no available tasks, try again.
+-    if( mt<0  )  exit        ! all tasks complete, report results.
+-    if( mt==0 )  go to 910   ! no more work, terminate.
+-
+-    ! Default, receive assignment & fall through.
+-
+-    ! Set nps, npp, random number seed, rssa file, and kcode source.
+-    nst = 0
+-    kbp = merge( 0, -1,  mt==nm )
+-    ! Skip over starters from previous chunks.
+-    if( nsr==6 ) then
+-      do i8i = nps+1_i8knd, nc(mt-1,1)
+-        nps  = nps+1_i8knd
+-        call RN_init_particle( nps )
+-        call sursrc(1)
+-        if( nrrs>=nrss )  exit
+-      enddo
+-    else
+-      n   = nc(mt-1,1) - nps
+-
+-      nps = nc(mt-1,1)
+-      call RN_init_particle( nps )
+-
+-      if( nsr==71 ) then
+-        nsa = nsa - n
+-        if( ksdef<=0 ) then
+-          ixak = mod( ixak-1+n, msrk ) + 1
+-        endif
+-      endif
+-    endif
+-
+-    npp = nc(mt,1)
+-
+-    ! Ensure all locks are released prior to transport.
+-    if( mcnp_opt_omp ) then
+-      do i=1,nlocks
+-        call sm_loff(jlock,i)
+-      end do
+-    endif
+-
+-    ! Transport assigned histories.
+-    w2 = wclock(0.0_dknd)
+-    if( ntasks<=1 ) then
+-
+-      call trnspt
+-
+-    else
+-      jlock = -1
+-
+-      ! Initiate threads.
+-      !$OMP PARALLEL
+-      call trnspt
+-      !$OMP END PARALLEL
+-
+-      jlock = 0
+-      !***  jlock = -1  !*** turn locks off
+-
+-    endif
+-
+-    ! Record wallclock time spent in trnspt.
+-    pptme(2) = pptme(2)+wclock(w2)
+-
+-    ! Update the RN usage statistics
+-    call RN_query( count_stride = i8a, count_max  = i8b, &
+-      &            count_max_nps = i8c, count_total = i8d )
+-    nrnh(1) = i8a
+-    nrnh(2) = i8b
+-    nrnh(3) = i8c
+-    rnr     = i8d
+-
+-    ! Microtask complete, notify master and get next microtask.
+-    call dm_sndi
+-    call msg_put(mt)
+-    call dm_send(0,30,i)
+-    write(iuo,'( "$end$")')
+-    nc(mt,2) = mynum
+-    nc(mt,3) = nrsw
+-    nc(mt,4) = nss
+-    itask    = -1
+-  enddo
+-
+-
+-  ! All microtasks complete, check for fault signal.
+-
+-  itask = -2
+-
+-  if( -mt/=ltasks ) then
+-    ! Fault signal detected. reset ltasks and acknowledge signal.
+-    ltasks = -mt
+-    call dm_sndi
+-    call dm_send(0,32,i)
+-    ! Reset variables and rewind files.
+-    call vtask
+-    n1 = -1
+-    if( nsr==6 )  rewind iusr
+-
+-    ! Loop back to restart this set of microtasks.
+-    go to 110
+-  endif
+-
+-  ! Send task common data stored in varcom.
+-  call dm_sndi
+-  call msg_put(  gvarcm(1: nvarsw), 1,  nvarsw )
+-  call msg_put( i8varcm(1:l8varsw), 1, l8varsw )
+-  call msg_put(  jvarcm(1: lvarsw), 1,  lvarsw )
+-  call msg_put( ktskpt(1:ltskpt-1), 1, ltskpt-1 )
+-  call dm_send(0,4,i)
+-
+-  ! Send tallies in chunks.
+-  l1 = mxf + 1
+-  l2 = l1 - 1 + (nmxf-1)*mxf
+-  do l = l1,l2,lchnk
+-    n = min( lchnk, l2-l+1 )
+-    call dm_sndi
+-    call msg_put( tal,  l, n )
+-    call dm_send(0,4,i)
+-  enddo
+-  tal(l1:l2)=zero
+-
+-  ! Send task arrays & tally arrays - shsd,stt,nhsd.
+-  call dm_sndi
+-  call task_arrays_msgput
+-
+-  call vtask
+-
+-  !Send mesh tally values
+-  call fmesh_msgtsk
+-
+-  ! Send output variables not updated in vtask - a bit tricky.
+-  call msg_put( kdbnps )
+-  if( kdbnps/=0 ) then
+-    call msg_put ( mmkdb )
+-    call msg_put( hsub)
+-    call msg_put( hmes)
+-  endif
+-  call msg_put( kcsf )
+-  call msg_put( mynum )
+-  call msg_put( nbal(mynum+1) )
+-  call msg_put( nbov )
+-  call msg_put( nerr )
+-  call msg_put( netb,  1,  2 )
+-  call msg_put( nwse )
+-  call msg_put( nwst )
+-  call msg_put( nwsg,  1, 3 )
+-  call msg_put( nwsb )
+-  call msg_put (jrad )
+-  call msg_put( nesm )
+-  call msg_put( nsom )
+-  call msg_put( nppm )
+-  call msg_put( npnm )
+-  call msg_put( nkrp )
+-  call msg_put( jtlx )
+-  call msg_put( nqsw )
+-
+-  call msg_put ( nrsw )
+-  call msg_put(  nsl,   1,  (2+4*mipt)*(njss+nilw))
+-  call msg_put( nss )
+-  call msg_put( ntbb,   1,   5*ntal)
+-  do i = 1,nww(nips)
+-    call msg_put( nwws(:,i), 1,  2)    !one column is passed
+-  enddo
+-  do j = 1,ndnd
+-    call msg_put( ddn(22,j)-ddn(22,ndnd+j) )   !stride = 24
+-  enddo
+-  ddn(21:24,ndnd+1:ndnd+ndnd)=zero
+-
+-  do k = 1,mxdx*min(1,nxnx)
+-    do j = 1,mipt
+-      call msg_put( dxd(j,22,k)-dxd(j,22,mxdx+k) )    ! stride = 22
+-    enddo
+-  enddo
+-  dxd(1:mipt,21:24,mxdx+1:mxdx+mxdx)=zero
+-
+-  ! Send variables depending on if the last microtask.
+-  if( mynum/=nc(nm,2) ) then
+-    call msg_put( 0 )
+-  else
+-
+-    ! Send variables from static variable common.
+-    call msg_put( 1 )
+-    call msg_put( ixak )
+-    call msg_put( jtfc )
+-    call msg_put( kcy )
+-    call msg_put( laj,  1, (mlaj+mxa)*mtasks )
+-    call msg_put( lcaj,  1,  (mlja+1)*mtasks )
+-    call msg_put( mdc )
+-    call msg_put( mpc )
+-    call msg_put( mrm )
+-    call msg_put( nps )
+-    call msg_put( npsr )
+-    call msg_put( nqss )
+-    call msg_put( nrrs )
+-    call msg_put( nsa )
+-    call msg_put( nssi,  1,  10)
+-    call msg_put( ntc )
+-    call msg_put( ntc1 )
+-    call msg_put( nst )
+-    call msg_put( ntss )
+-    call msg_put( twac )
+-    call msg_put( twss )
+-    call msg_put( wssi,  1,  10)
+-  endif
+-  call dm_send(0,5,i)
+-
+-  ! Prepare scratch files and sort multi-file data.
+-  rewind iuo
+-  if( issw/=0 )  rewind iusc
+-
+-  ! Send some data in order of performed microtasks.
+-  ist = is
+-  mp  = 0
+-  ! Do submicrotasks.
+-  do mt = 1,nm
+-    if( nc(mt,2)==0 )  cycle
+-
+-    call dm_sndi
+-
+-    ! Send text written to outp file.
+-    hf = ' '
+-    do while( hf /= '$end$' )
+-      read(iuo,'(a136)',end=400)  hf
+-      call msg_put( hf )
+-    enddo
+-400 continue
+-
+-    ! Send ssw data.
+-    if( issw/=0 ) then
+-      ! Set dimension of ssw data (nd), default = 11.
+-      if( nsph==1 ) then
+-        nd = 6
+-      else
+-        nd = 11
+-      endif
+-      n = nc(mt,3)-nc(mp,3)
+-      call msg_put( n )
+-      do k = 1,n
+-        read(iusc,end = 920)  (rg(i),i = 1,nd)
+-        call msg_put( rg, 1, nd )
+-      enddo
+-    endif
+-
+-    ! Send kcode source data.
+-    if( nsr==71 )  then
+-
+-      n = nc(mt,4)-nc(mp,4)
+-      call msg_put( n )
+-      if( ist+n-1 > msrk ) then
+-        k = msrk-ist+1
+-        call msg_put( fso, nfso_items*(ist-1)+1, nfso_items*k)
+-        call msg_put( fso, 1, nfso_items*(n-k))
+-      else
+-        call msg_put ( fso, nfso_items*(ist-1)+1, nfso_items*n)
+-      endif
+-
+-      if ( do_any_kadjoint ) then
+-        call kadjoint_msgtsk
+-      endif
+-
+-      ist = ist + n
+-      if( ist>msrk ) ist = ist - msrk
+-
+-    endif
+-
+-    ! End of submicrotasks do loop.
+-    mp = mt
+-    call dm_send(0,34,i)
+-  enddo
+-
+-  ! Send timing data to master.
+-  ! Cp1 = total cpu time per processor for this run.
+-  ! Cp3 = total cpu time from all processors for this run.
+-  ! Pptme(1) = unused
+-  ! Pptme(2) = wall-time spent on tracking particles.
+-  call secnd(t2)
+-  cp3 = cp3+t2-t1
+-  t1  = t2
+-  call dm_sndi
+-  call msg_put( cp1 )
+-  call msg_put( cp3 )
+-  call msg_put( cts )
+-  call msg_put( pptme, 1,  2)
+-  call dm_send(0,35,i)
+-  go to 110
+-
+-
+-  ! Subtasks -- respond to kill signal, exit, and stop.
+-910 continue
+-  call dm_sndi
+-  call dm_send(0,99,i)
+-  call dm_term
+-  stop
+-
+-  ! Error handling.
+-920 continue
+-  write(jtty,*) "msgtsk: unexpected eof on subtask wxxa file."
+-  call dm_term
+-  stop
+-
+-930 continue
+-  write(jtty,*) "msgtsk: unexpected eof on subtask rssa file."
+-  call dm_term
+-  stop
+-end subroutine msgtsk
++!+ $Id: msgtsk.F90,v 1.22.2.1 2010/09/20 19:48:23 fbrown Exp $
++! Copyright LANS/LANL/DOE - see file COPYRIGHT_INFO
++
++subroutine msgtsk
++  ! Description:
++  ! Called by MPI slave tasks. They never return.
++  ! 
++  ! If MPI is not defined, this routine simply returns. 
++
++  ! Modules:
++  use dmmp
++  use smmp
++  use mcnp_global
++  use mcnp_debug
++  use mcnp_input
++  use dynamic_arrays
++  use messages
++!  use fmesh_mod, only :  fmesh_msgget, fmesh_msgtsk
++  use fmesh_mod
++  use isotopic_mod, only: isotopic_msgget
++  use phtvr_mod, only :  phtvr_msgget
++  use uran_mod,  only :  uran_msgget 
++  use kadjoint_mod, only : do_any_kadjoint, kadjoint_msgget, kadjoint_msgtsk, kadjoint_msgtsk_new
++
++  implicit real(dknd) (a-h,o-z)
++
++  integer            ::  mn 
++  integer            ::  i_send_rssa_file    ! flag for sending rssa file to slave via message passing
++  integer            ::  i_slave_rssa_status ! flag  for status of slaves ability to read rssa file
++  real(dknd)         ::  rg(11)
++  integer(i8knd),allocatable ::  nc(:,:)
++  integer(i8knd)     ::  i8a, i8b, i8c, i8d, i8i
++  integer(i8knd)     ::  i_i8, np1_local
++  integer, parameter ::  max_find_cells = 20
++  integer,dimension(max_find_cells,2) :: kcells
++  character(len=136) ::  hf
++  character(len=4)   ::  pf
++  character(len=20)  ::  name_out
++  character(len=19)  :: hd   ! ATr: for time stamp after each mesh element
++  integer            :: istt ! ATr: Number of sampled coordinates per 1cm3
++  logical            ::  file_open
++  ! ATr
++  logical:: exis
++  integer:: i_p0, j_p0, k_p0
++  integer:: nacells, nvcells  ! number of cells and number of non-void cells
++  integer:: fmi               ! fmesh index for material detection
++  save iflo
++#ifdef AIX
++  logical(4) :: is_assoc
++#else
++  logical    :: is_assoc
++#endif
++
++  if( .not.mcnp_opt_mpi ) then
++    ! Just return, if not using MPI message-passing
++    return
++  endif
++
++  ! Receive work-exists message.
++  call dm_bcast(1,iw,1,0,i)
++  if( iw/=0 ) then
++    call dm_term ! no work.
++    stop
++  endif
++
++  ! Subtasks -- receive common blockdata from master task.
++  call dm_recv(-1,4,i)
++  call secnd(t1)
++  call msg_get(  gfixcm(1: nfixcm), 1,  nfixcm )
++  call msg_get( i8fixcm(1:l8fixcm), 1, l8fixcm )
++  call msg_get(  jfixcm(1: lfixcm), 1,  lfixcm )
++
++  call msg_get(  gvarcm(1: nvarcm), 1,  nvarcm )
++  call msg_get( i8varcm(1:l8varcm), 1, l8varcm )
++  call msg_get(  jvarcm(1: lvarcm), 1,  lvarcm )
++
++  call msg_get( rdum,    1, n_rdum  )
++  call msg_get( idum,    1, n_idum  )
++
++  call msg_get(  gephcm(1: nephcm), 1,  nephcm )
++  call msg_get( i8ephcm(1:l8ephcm), 1, l8ephcm )
++  call msg_get(  jephcm(1: lephcm), 1,  lephcm )
++
++  mn = merge( ltasks*30, ltasks,  jtasks>0 )
++  allocate( nc(0:mn,1:4) )
++  nc=0
++
++  if( mcnp_opt_omp ) then
++    ! Set up for threading.
++    call sm_setnt( ntasks )
++    call sm_linit( nlocks )
++  endif
++
++  ! Receive dynamic common.
++  call dm_recv(-1,14,i)
++  call dyn_allocate
++  call dyn_msgget
++  call fmesh_msgget
++  call phtvr_msgget
++  call uran_msgget
++  call kadjoint_msgget 
++  call isotopic_msgget
++
++  ! Receive cross section data.
++  if( lxs>0 ) then
++    is_assoc = associated(xss)
++    if( .not. is_assoc )  then
++      call get_mem( "xss", xss, 1,lxs )
++    endif
++    call dm_recv(-1,24,i)
++    call msg_get( xss,  1,  lxs)
++  endif
++
++  ! Initialize the rest of dynamically allocated common.
++  !
++  if( allocated( gbnk        ) )  deallocate( gbnk )
++  if( allocated( ibnk        ) )  deallocate( ibnk )
++  if( allocated( tal         ) )  deallocate( tal  )
++  if( allocated( tal_fircopy ) )  deallocate( tal_fircopy  )
++
++  mt = merge( mtasks+1, 1,  mcnp_opt_parallel )
++
++  allocate( gbnk( 1:mbnk*mtasks ) )
++  allocate( ibnk( 0:(nbmx*(lpblcm+2*abs(iunr))+1)*mtasks ) )
++  allocate( tal(  1:(nmxf*mxf+ktls)*mt ) )
++  gbnk = 0.0
++  ibnk = 0
++  tal  = 0.0
++  scr  = 0.
++  ifl  = 0
++
++  if( npsmg/=0 ) then
++    ! second entry of nps-card is nonzero
++    allocate( tal_fircopy( 1:(nmxf*mxf+ktls) )  )
++    tal_fircopy = zero
++  endif
++
++  ! Initialize other variables.
++  ! Initialize workload counters.
++  nc(0,3) = 0
++  nc(0,4) = 0
++
++  ! Open the outp scratch file.
++  inquire( unit = iuo, opened = file_open )
++  if( file_open )  close(iuo)
++  open(iuo,status='scratch')
++
++  ! Receive rssa file from master task.
++  if( nsr==6 ) then
++
++    ! recieve rssa file info
++    call dm_recv(-1,50,i)
++    call msg_get( rssa )
++    call msg_get( nrrs )
++
++    ! open and read enough of rssa header for setdas information
++    inquire( file=rssa, exist=file_exists )
++    if( file_exists ) then
++      i_slave_rssa_status = 0
++    else
++      i_slave_rssa_status = 1
++    endif
++
++    ! send status of rssa file to master
++    call dm_sndi
++    call msg_put( i_slave_rssa_status )
++    call dm_send(0,51,i)
++
++    ! recieve rssa file distribution method from master
++    call dm_recv(-1,52,i)
++    call msg_get( i_send_rssa_file )
++
++    if( i_send_rssa_file == 0 ) then
++
++      ! read rssa file locally 
++      open( iusr, file=rssa, status='old',form='unformatted')
++      rewind iusr
++      read(iusr,end = 930)
++      read(iusr,end = 930) np1_local, i_i8, j, njsw
++
++      if( np1_local < 0_I8KND ) then
++        read(iusr,end = 930) niwr
++      endif
++
++      do i = 1, njsw+niwr+nrrs+1
++        read(iusr,end = 930)
++      enddo
++
++    else
++
++      ! recieve rssa file via message passing
++      open( iusr, status='scratch',form='unformatted')
++      rewind iusr
++      m = 0
++      call dm_recv(-1,53,i)
++      ! Mr = max records to send at once.
++      mr = (lchnk+nrcd-1)/nrcd
++      do n = 1,nrss-nrrs
++        call msg_get( ssb,  1,  nrcd )
++        write(iusr)  (ssb(i),i = 1,nrcd)
++        if( mod(n,mr)/=0 .or. n>=nrss-nrrs )  cycle
++        m = m+1
++        call dm_recv(-1,53+m,i)
++      enddo
++      endfile iusr
++      rewind iusr
++
++    endif
++
++    read(iusr,end = 930)  (ssb(i),i = 1,nrcd)
++
++  endif
++
++  ! Subtask finished receiving initialization information.
++
++  ! Prepare surface-source write file.
++  if( issw/=0 ) then
++    open(iusc,status='scratch',form='unformatted')
++    rewind iusc
++    nrsw = 0
++    nqsw = 0
++  endif
++
++  ! Subtasks done receiving initialization data.
++  !------------------------------------------------------------
++
++  ! Subtasks -- execute the microtasks.
++
++
++110 continue
++
++  ! Receive task assignments.
++  call dm_recv(-1,20,i)
++  call msg_get( nm )
++  if( nm==0 )  go to 910   ! finished, exit.
++
++  call msgZ_get( nc,  nm+1 )
++
++  ! Update variables to the current history.
++  n1 = nrrs
++  call dm_recv(-1,4,i)
++  call msg_get( cp1 )
++  call msg_get( cp3 )
++  call msg_get( tdc )
++  call msg_get( tlc )
++  call msg_get( trm )
++  call msg_get(  ddn,    1, 24*ndnd)
++  call msg_get(  dxd,    1, mipt*24*mxdx)
++  call msg_get(  gvarcm(1: nvarcm), 1,  nvarcm )
++  call msg_get( i8varcm(1:l8varcm), 1, l8varcm )
++  call msg_get(  jvarcm(1: lvarcm), 1,  lvarcm )
++  call msg_get( nbal,    1, size(nbal))
++  call msg_get( rdum,    1, n_rdum  )
++  call msg_get( idum,    1, n_idum  )
++  if( nsr==71 .and. nss==0 ) call msg_get( fso,  1,  nfso_items*msrk )
++
++  if ( do_any_kadjoint ) then
++    call kadjoint_msgtsk_new
++  endif
++
++  if( nps>=npsmg .and. npsmg/=0 ) then
++    ! receive tallies in chunks
++    do l = 1+mxf, mxf*nmxf, lchnk
++      n = min( lchnk, mxf*nmxf-l+1 )
++      call dm_recv(-1,4,i)
++      call msg_get( tal_fircopy, l, n )
++    enddo
++  endif
++
++  ! Initialize various variables for this rendezvous.
++  nc(1:nm,2) = 0
++  is    = ist
++  irt   = 50
++  itask = 0     ! flag, to control utask & vtask.
++  nbov  = 0
++  nqsw  = 0
++  nrsw  = 0
++  nsl(1:2+4*mipt, 1:njss+nilw) = 0
++  nss   = 0
++  ntbb(1:5, 1:ntal) = 1
++  nwws(1:2, 1:nww(nips)) = 0
++  pptme(2) = 0.
++
++  ! Prepare various input and output files.
++  rewind iuo
++  if( issw/=0 )  rewind iusc
++  if( nsr==6  ) then
++    do i = 1,nrrs-n1-1
++      read(iusr,end = 930)
++    enddo
++    if( n1<nrrs .and. nrrs<nrss ) then
++      read(iusr,end = 930)  (ssb(i),i = 1,nrcd)
++    endif
++  endif
++
++  ! Clear the swept part of varcom.
++  gvarcm(1:nvarsw)   = 0.
++  i8varcm(1:l8varsw) = 0_i8knd
++  jvarcm(1:lvarsw)   = 0
++  wgts(1) = huge_float
++
++  call RN_init_problem( new_standard_gen = RN_gen_input,     &
++    &                   new_seed         = RN_seed_input,    &
++    &                   new_stride       = RN_stride_input,  &
++    &                   new_part1        = RN_hist_input,    &
++    &                   output = .false. )
++
++
++  do
++
++    ! Receive the next microtask assignment.
++    call dm_recv(-2,31,i)
++    call msg_get( mt )
++
++    if( mt>nm )  cycle       ! no available tasks, try again.
++    if( mt<0  )  exit        ! all tasks complete, report results.
++    if( mt==0 )  go to 910   ! no more work, terminate.
++
++    ! Default, receive assignment & fall through.
++
++    ! Set nps, npp, random number seed, rssa file, and kcode source.
++    nst = 0
++    kbp = merge( 0, -1,  mt==nm )
++    ! Skip over starters from previous chunks.
++    if( nsr==6 ) then
++      do i8i = nps+1_i8knd, nc(mt-1,1)
++        nps  = nps+1_i8knd
++        call RN_init_particle( nps )
++        call sursrc(1)
++        if( nrrs>=nrss )  exit
++      enddo
++    else
++      n   = nc(mt-1,1) - nps
++
++      nps = nc(mt-1,1)
++      call RN_init_particle( nps )
++
++      if( nsr==71 ) then
++        nsa = nsa - n
++        if( ksdef<=0 ) then
++          ixak = mod( ixak-1+n, msrk ) + 1
++        endif
++      endif
++    endif
++
++    npp = nc(mt,1)
++
++    ! Ensure all locks are released prior to transport.
++    if( mcnp_opt_omp ) then
++      do i=1,nlocks
++        call sm_loff(jlock,i)
++      end do
++    endif
++
++    ! Transport assigned histories.
++    w2 = wclock(0.0_dknd)
++    if( ntasks<=1 ) then
++
++      call trnspt
++
++    else
++      jlock = -1
++
++      ! Initiate threads.
++      !$OMP PARALLEL
++      call trnspt
++      !$OMP END PARALLEL
++
++      jlock = 0
++      !***  jlock = -1  !*** turn locks off
++
++    endif
++
++    ! Record wallclock time spent in trnspt.
++    pptme(2) = pptme(2)+wclock(w2)
++
++    ! Update the RN usage statistics
++    call RN_query( count_stride = i8a, count_max  = i8b, &
++      &            count_max_nps = i8c, count_total = i8d )
++    nrnh(1) = i8a
++    nrnh(2) = i8b
++    nrnh(3) = i8c
++    rnr     = i8d
++
++    ! Microtask complete, notify master and get next microtask.
++    call dm_sndi
++    call msg_put(mt)
++    call dm_send(0,30,i)
++    write(iuo,'( "$end$")')
++    nc(mt,2) = mynum
++    nc(mt,3) = nrsw
++    nc(mt,4) = nss
++    itask    = -1
++  enddo
++
++
++  ! All microtasks complete, check for fault signal.
++
++  itask = -2
++
++  if( -mt/=ltasks ) then
++    ! Fault signal detected. reset ltasks and acknowledge signal.
++    ltasks = -mt
++    call dm_sndi
++    call dm_send(0,32,i)
++    ! Reset variables and rewind files.
++    call vtask
++    n1 = -1
++    if( nsr==6 )  rewind iusr
++
++    ! Loop back to restart this set of microtasks.
++    go to 110
++  endif
++
++  ! Send task common data stored in varcom.
++  call dm_sndi
++  call msg_put(  gvarcm(1: nvarsw), 1,  nvarsw )
++  call msg_put( i8varcm(1:l8varsw), 1, l8varsw )
++  call msg_put(  jvarcm(1: lvarsw), 1,  lvarsw )
++  call msg_put( ktskpt(1:ltskpt-1), 1, ltskpt-1 )
++  call dm_send(0,4,i)
++
++  ! Send tallies in chunks.
++  l1 = mxf + 1
++  l2 = l1 - 1 + (nmxf-1)*mxf
++  do l = l1,l2,lchnk
++    n = min( lchnk, l2-l+1 )
++    call dm_sndi
++    call msg_put( tal,  l, n )
++    call dm_send(0,4,i)
++  enddo
++  tal(l1:l2)=zero
++
++  ! Send task arrays & tally arrays - shsd,stt,nhsd.
++  call dm_sndi
++  call task_arrays_msgput
++
++  call vtask
++
++  !Send mesh tally values
++  call fmesh_msgtsk
++
++  ! Send output variables not updated in vtask - a bit tricky.
++  call msg_put( kdbnps )
++  if( kdbnps/=0 ) then
++    call msg_put ( mmkdb )
++    call msg_put( hsub)
++    call msg_put( hmes)
++  endif
++  call msg_put( kcsf )
++  call msg_put( mynum )
++  call msg_put( nbal(mynum+1) )
++  call msg_put( nbov )
++  call msg_put( nerr )
++  call msg_put( netb,  1,  2 )
++  call msg_put( nwse )
++  call msg_put( nwst )
++  call msg_put( nwsg,  1, 3 )
++  call msg_put( nwsb )
++  call msg_put (jrad )
++  call msg_put( nesm )
++  call msg_put( nsom )
++  call msg_put( nppm )
++  call msg_put( npnm )
++  call msg_put( nkrp )
++  call msg_put( jtlx )
++  call msg_put( nqsw )
++
++  call msg_put ( nrsw )
++  call msg_put(  nsl,   1,  (2+4*mipt)*(njss+nilw))
++  call msg_put( nss )
++  call msg_put( ntbb,   1,   5*ntal)
++  do i = 1,nww(nips)
++    call msg_put( nwws(:,i), 1,  2)    !one column is passed
++  enddo
++  do j = 1,ndnd
++    call msg_put( ddn(22,j)-ddn(22,ndnd+j) )   !stride = 24
++  enddo
++  ddn(21:24,ndnd+1:ndnd+ndnd)=zero
++
++  do k = 1,mxdx*min(1,nxnx)
++    do j = 1,mipt
++      call msg_put( dxd(j,22,k)-dxd(j,22,mxdx+k) )    ! stride = 22
++    enddo
++  enddo
++  dxd(1:mipt,21:24,mxdx+1:mxdx+mxdx)=zero
++
++  ! Send variables depending on if the last microtask.
++  if( mynum/=nc(nm,2) ) then
++    call msg_put( 0 )
++  else
++
++    ! Send variables from static variable common.
++    call msg_put( 1 )
++    call msg_put( ixak )
++    call msg_put( jtfc )
++    call msg_put( kcy )
++    call msg_put( laj,  1, (mlaj+mxa)*mtasks )
++    call msg_put( lcaj,  1,  (mlja+1)*mtasks )
++    call msg_put( mdc )
++    call msg_put( mpc )
++    call msg_put( mrm )
++    call msg_put( nps )
++    call msg_put( npsr )
++    call msg_put( nqss )
++    call msg_put( nrrs )
++    call msg_put( nsa )
++    call msg_put( nssi,  1,  10)
++    call msg_put( ntc )
++    call msg_put( ntc1 )
++    call msg_put( nst )
++    call msg_put( ntss )
++    call msg_put( twac )
++    call msg_put( twss )
++    call msg_put( wssi,  1,  10)
++  endif
++  call dm_send(0,5,i)
++
++  ! Prepare scratch files and sort multi-file data.
++  rewind iuo
++  if( issw/=0 )  rewind iusc
++
++  ! Send some data in order of performed microtasks.
++  ist = is
++  mp  = 0
++  ! Do submicrotasks.
++  do mt = 1,nm
++    if( nc(mt,2)==0 )  cycle
++
++    call dm_sndi
++
++    ! Send text written to outp file.
++    hf = ' '
++    do while( hf /= '$end$' )
++      read(iuo,'(a136)',end=400)  hf
++      call msg_put( hf )
++    enddo
++400 continue
++
++    ! Send ssw data.
++    if( issw/=0 ) then
++      ! Set dimension of ssw data (nd), default = 11.
++      if( nsph==1 ) then
++        nd = 6
++      else
++        nd = 11
++      endif
++      n = nc(mt,3)-nc(mp,3)
++      call msg_put( n )
++      do k = 1,n
++        read(iusc,end = 920)  (rg(i),i = 1,nd)
++        call msg_put( rg, 1, nd )
++      enddo
++    endif
++
++    ! Send kcode source data.
++    if( nsr==71 )  then
++
++      n = nc(mt,4)-nc(mp,4)
++      call msg_put( n )
++      if( ist+n-1 > msrk ) then
++        k = msrk-ist+1
++        call msg_put( fso, nfso_items*(ist-1)+1, nfso_items*k)
++        call msg_put( fso, 1, nfso_items*(n-k))
++      else
++        call msg_put ( fso, nfso_items*(ist-1)+1, nfso_items*n)
++      endif
++
++      if ( do_any_kadjoint ) then
++        call kadjoint_msgtsk
++      endif
++
++      ist = ist + n
++      if( ist>msrk ) ist = ist - msrk
++
++    endif
++
++    ! End of submicrotasks do loop.
++    mp = mt
++    call dm_send(0,34,i)
++  enddo
++
++  ! Send timing data to master.
++  ! Cp1 = total cpu time per processor for this run.
++  ! Cp3 = total cpu time from all processors for this run.
++  ! Pptme(1) = unused
++  ! Pptme(2) = wall-time spent on tracking particles.
++  call secnd(t2)
++  cp3 = cp3+t2-t1
++  t1  = t2
++  call dm_sndi
++  call msg_put( cp1 )
++  call msg_put( cp3 )
++  call msg_put( cts )
++  call msg_put( pptme, 1,  2)
++  call dm_send(0,35,i)
++  go to 110
++
++
++  ! Subtasks -- respond to kill signal, exit, and stop.
++910 continue
++
++
++! PP
++
++    write(pf, '(i4)') mynum
++    name_out = 'outcells'//trim(adjustl(pf))
++    ifout = mynum + 100
++    write(*, *) name_out, ifout
++    open(ifout, file=name_out, status='new', action='write')
++
++    ! Get the fmesh number (not index) from idum(2)
++    if (idum(2) .gt. 0) then
++        fmi = 0
++        do i = 1, nmesh
++            if (fm(i)%id .eq. idum(2)) then
++                fmi = i
++                exit
++            end if
++        end do
++        if (fmi .eq. 0) then
++            write(*, *) "Fmesh for material detection idum(2)", idum(2), " not found"
++            stop
++        end if 
++    else
++        fmi = 1
++    end if 
++    write(*, *)'Metarial detected for mesh tally', fm(fmi)%id
++
++    ! icc_cells = (fm(fmi)%nxrb-1) * (fm(fmi)%nyzb-1) * (fm(fmi)%nztb-1)
++
++!   write(*,*)'i=',fm(fmi)%nxrb,' j=',fm(fmi)%nyzb,' k=',fm(fmi)%nztb,' mynum=',mynum
++
++    ! num_tot = icc_cells / ltasks
++
++    ! TODO: read the last line from ifout to continue from previuos run.  
++    ! Starting indices for i_p, j_p and k_p can be defined from
++    ! the xcc, ycc and zcc read on the last line.
++    m_p = 0
++    if (mynum .eq. 1) then
++        write(*, *) 'Mesh size:', fm(fmi)%nxrb - 1, fm(fmi)%nyzb - 1, fm(fmi)%nztb - 1
++    end if
++    do i_p = 1, fm(fmi)%nxrb - 1
++        if (mynum .eq. 1) then
++            call getidt(hd)
++            write(*, *) hd, '  Task', mynum, ' starts i = ', i_p 
++        end if
++        do j_p = 1, fm(fmi)%nyzb - 1
++            do k_p = 1, fm(fmi)%nztb - 1
++            m_p = m_p + 1
++            if (m_p .eq. mynum) then
++                ! process mesh element only if not existed in the prevoius output file
++                xmin = fm(fmi)%xrbin(i_p)
++                xmax = fm(fmi)%xrbin(i_p+1)
++                ymin = fm(fmi)%yzbin(j_p)
++                ymax = fm(fmi)%yzbin(j_p+1)
++                zmin = fm(fmi)%ztbin(k_p)
++                zmax = fm(fmi)%ztbin(k_p+1)
++                xcc = (xmin+xmax) / 2.
++                ycc = (ymin+ymax) / 2.
++                zcc = (zmin+zmax) / 2.
++                iptc = 1  ! neutron
++                call findcells(iptc, xmin, xmax, ymin, ymax, zmin, zmax, kcells, istt)
++
++                ! Alternative implementation
++                nacells = count(kcells(:, 1) .gt. 0)  ! number of cells in the fine mesh element
++                nvcells = count(mat(kcells(1:nacells, 1)) .gt. 0)  ! number of non-void cells
++
++                if (nvcells .gt. 0) then 
++                    nhit = sum(kcells(:, 2))
++                    write(ifout, '(3i6, 3f10.3, i4, i12, <nacells>(10x, 3i12))') &
++                        i_p, j_p, k_p, & 
++                        xcc, ycc, zcc, &
++                        nacells, nhit,  & 
++                        (kcells(mcnt, 1), kcells(mcnt, 2), mat(kcells(mcnt, 1)), mcnt=1, nacells)
++                end if
++                ! Reset m_p for next element in this process
++                m_p = m_p - ltasks
++            end if
++            end do
++        end do
++    end do
++
++    call getidt(hd)
++    write(*,*) 'CPU ', mynum, ' completed at ', hd, 'for ', l1, l2, istt, '1/cm3'
++
++
++! PP
++
++
++911 continue
++
++  call dm_sndi
++  call dm_send(0,99,i)
++  call dm_term
++  stop
++
++  ! Error handling.
++920 continue
++  write(jtty,*) "msgtsk: unexpected eof on subtask wxxa file."
++  call dm_term
++  stop
++
++930 continue
++  write(jtty,*) "msgtsk: unexpected eof on subtask rssa file."
++  call dm_term
++  stop
++end subroutine msgtsk
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/sumary.F90 mcnp5-r2s-mat/Source/src/sumary.F90
+--- mcnp5-orig/Source/src/sumary.F90	2014-12-01 13:34:32.000000000 +0100
++++ mcnp5-r2s-mat/Source/src/sumary.F90	2018-01-17 11:26:16.000000000 +0100
+@@ -362,15 +362,22 @@
+     call kprint
+   endif
+ 
++  ! ATr: do not print out meshtal and mctal. This can take considerable time
+   ! Print mesh tallies
+-  if( nmesh>0 ) then
++  if( .FALSE. ) then
+     call fmesh_print
+   endif
+ 
+   ! Print tally data.
+-  if( ntal>0 ) then
++  if( .FALSE. ) then
+     call tallyp
+   endif
++  ! ATr
++
++  ! Print table with cell indices
++  call tblCMI
++  ! Print table with material compositino in fispact format
++  call tblFIS
+ 
+   ! Generate weight-window cards at the end of the run.
+   if( iwwg>0 .and. (nst/=0 .or. npp<0_i8knd) ) then
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/tblCMI.F90 mcnp5-r2s-mat/Source/src/tblCMI.F90
+--- mcnp5-orig/Source/src/tblCMI.F90	1970-01-01 01:00:00.000000000 +0100
++++ mcnp5-r2s-mat/Source/src/tblCMI.F90	2018-01-17 10:33:25.000000000 +0100
+@@ -0,0 +1,76 @@
++! Subroutine to print out cell and material indices and numbers.
++subroutine tblCMI
++    use mcnp_params, only: iuo  
++    use mcnp_global, only: den, junf, jun, jmd, lca, mat, mxa, ncl, nmt, rho
++
++    implicit none
++    integer:: j
++
++    ! Print information about cell and mateiral indices and names to outp
++    write(iuo, '("1cell and material indices", 83x, "print table CMI")') 
++    write(iuo, '(8a16)') "Cell_index", "Cel_name", "Geometry_length", "Universe_number", "Material_index", "Material_name", "Density", "Conc"
++    if (junf /= 0) then
++        do j = 1, mxa ! number of cells in the problem, from fixcom
++            ! mat -- material numbers of the cells. From example in
++            ! tally.F90, indices -- cell indices, not names.
++            !
++            ! nmt(i) -- material name of material i, i = 1, nmat. Example in
++            ! rhoden.F90.
++            !
++            ! Number of surfaces that define cell icl is given by lca(icl+1) - lca(icl). 
++            ! For an example, seeach for lca(icl) in chksrc.F90.
++            write(iuo, 201) & 
++                j,                               &  ! cell index
++                ncl(j),                          &  ! cell name
++                abs(lca(j+1)) - abs(lca(j)),     &  ! Geometry length
++                jun(j),                          &  ! Universe
++                mat(j),                          &  ! Material index
++                nmt(mat(j)),                     &  ! Material name
++                den(j),                          &  ! Cell density
++                rho(j)                              ! Concentration
++        end do
++    else
++        ! in case junf == 0, jun is not allocated
++        do j = 1, mxa ! number of cells in the problem, from fixcom
++            ! mat -- material numbers of the cells. From example in
++            ! tally.F90, indices -- cell indices, not names.
++            !
++            ! nmt(i) -- material name of material i, i = 1, nmat. Example in
++            ! rhoden.F90.
++            !
++            ! Number of surfaces that define cell icl is given by lca(icl+1) - lca(icl). 
++            ! For an example, seeach for lca(icl) in chksrc.F90.
++            write(iuo, 201) & 
++                j,                               &  ! 
++                ncl(j),                          &  ! 
++                abs(lca(j+1)) - abs(lca(j)),     &  ! 
++                0,                               &  ! 
++                mat(j),                          &  ! 
++                nmt(mat(j)),                     &  ! 
++                den(j),                          &  ! 
++                rho(j)
++        end do
++    end if
++201 format( 6i16, 1pe16.7, e16.7)                         
++    write(iuo, '(" end of print table CMI")')
++end subroutine tblCMI      
++
++subroutine tblFIS
++    use mcnp_params, only: iuo  
++    use mcnp_global, only: fme, iza, jmd, nmat, nmt
++    use fispact, only: f_get_name 
++    ! print material compositions in FUEL fispact format
++    implicit none
++    integer:: im, m
++
++    write(iuo, '("1FISPACT format",83x,  "print table FIS")')
++    write(iuo, *) nmat
++    do im = 1, nmat
++        write(iuo, *) 'Material', im, nmt(im), jmd(im+1) - jmd(im)
++        do m = jmd(im), jmd(im + 1) - 1
++            write(iuo, *) iza(m), f_get_name(iza(m)), fme(m)
++        end do
++    end do
++    write(iuo, '(" end of print table FIS")')
++
++end subroutine tblFIS      
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/torus.F90 mcnp5-r2s-mat/Source/src/torus.F90
+--- mcnp5-orig/Source/src/torus.F90	2014-12-01 13:34:32.000000000 +0100
++++ mcnp5-r2s-mat/Source/src/torus.F90	2017-12-10 01:50:06.000000000 +0100
+@@ -65,7 +65,16 @@
+       if( t3==0. )  exit
+       t3 = (uu(5)+xx(m)*(uu(4)+xx(m)*(uu(3)+xx(m)*(uu(2)+xx(m)))))/t3
+       xx(m) = xx(m)-t3
+-      if( abs(t3)<=z0 )  go to 40
++      ! Bug in torus evaluation that leads to infinite histories
++      ! if( abs(t3)<=z0 )  go to 40 
++      if ( abs(t3)<=z0 ) then
++          if (xx(m) < zero) then
++              cycle DO_60
++          else
++              go to 40
++          endif
++      endif
++      ! Bug in torus evaluation that leads to infinite histories
+     end do
+     if(krflg == 2)call errprn(1,-1,0,zero,zero,' ',' ','bad quartic solver root.')
+     cycle DO_60

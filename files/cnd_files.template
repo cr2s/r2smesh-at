@@ -1,0 +1,10 @@
+ind_nuc ./fispact-data/EAF2010data/eaf_index_20100
+decay   ./fispact-data/EAF2010data/eaf_dec_20100.001 
+
+# This is also needed for condense
+fissyld ./fispact-data/EAF2007data/eaf_n_fis_20070
+asscfy  ./fispact-data/EAF2010data/eaf_n_asscfy_20100
+
+# File where condense data ´are writen
+arrayx arrayx
+ 

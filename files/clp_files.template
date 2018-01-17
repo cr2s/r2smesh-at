@@ -1,0 +1,11 @@
+
+ind_nuc  ./fispact-data/EAF2010data/eaf_index_20100
+crossec  ./fispact-data/EAF2010data/eaf_n_gxs_175_fus_20100 
+crossunc ./fispact-data/EAF2010data/eaf_un_20100
+
+# This name is currently hardcoded. Do not change
+fluxes fluxes 
+
+collapxo collapx
+
+

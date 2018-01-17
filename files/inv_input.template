@@ -1,0 +1,50 @@
+<< Calculation of inventories, with libraries generated >>
+<< at the collapse and condense stages                  >>
+
+CLOBBER
+
+MONITOR 1 << Echo keywords to output>>
+
+<< Read collapsed and condensed data >>
+GETXS 0
+GETDECAY 0
+FISPACT
+* Inventory calculations for XXX 
+
+<< Turn on generation of separate files >>
+TAB1 10   << material compositions >>
+TAB2 10   << activity in Bq and Sv/h >>
+TAB4 10   << decay gamma spectra >>
+
+<< Material definition >>
+
+<< Irradiation Scenario >>
+ATOMS
+UNCERT 3             << Origainlly was 2, but lead to segmentation fault >>
+FLUX 5.357e-3 
+TIME 2 YEARS ATOMS
+FLUX 4.125e-2
+TIME 10 YEARS ATOMS
+FLUX 0
+TIME 0.667 YEARS ATOMS
+FLUX 8.3035e-2
+TIME 1.330 YEARS ATOMS
+PULSE 17
+    FLUX 0
+    TIME 3920 ATOMS
+    FLUX 1.0
+    TIME 400 ATOMS
+ENDPULSE
+PULSE 4
+    FLUX 0
+    TIME 3920 ATOMS
+    FLUX 1.4
+    TIME 400 ATOMS
+ENDPULSE
+FLUX 0
+ZERO
+TIME 0          ATOMS                                                                          
+TIME 1.0E6 ATOMS
+END 
+* End of inventory calcs for XXX
+
