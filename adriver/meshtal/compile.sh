@@ -1,11 +1,10 @@
 #!/bin/bash
 
 # Compile test together with the module
+. ../modules.sh
 
 rm *.o *.mod *.exe
 
-# For forHLR-II
-module load compiler/intel/17.0
 
 ifort -debug full -o test.exe \
        gen_module.f90 \

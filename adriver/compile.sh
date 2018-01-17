@@ -2,8 +2,7 @@
 
 # compile adriver.exe 
 
-# For for-HLR-II
-module load compiler/intel/17.0 mpi/impi/2017
+. ./modules.sh 
 
 mpiifort -mcmodel=large -debug full \
             -o adriver.exe \
