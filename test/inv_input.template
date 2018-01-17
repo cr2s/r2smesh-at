@@ -1,0 +1,38 @@
+<< Calculation of inventories, with libraries generated >>
+<< at the collapse and condense stages                  >>
+
+CLOBBER
+
+MONITOR 1 << Echo keywords to output>>
+
+<< Read collapsed and condensed data >>
+GETXS 0
+GETDECAY 0
+FISPACT
+* Inventory calculations for XXX 
+
+<< Turn on generation of separate files >>
+TAB1 10   << material compositions >>
+TAB2 10   << activity in Bq and Sv/h >>
+TAB4 10   << decay gamma spectra >>
+
+<< Material definition >>
+
+<< Irradiation Scenario >>
+ATOMS
+FLUX 1.0                << Flux normalized in the MCNP input file, see fmesh for fine mesh >>
+TIME 1 days ATOMS
+FLUX 0.0
+TIME 10 days ATOMS
+FLUX 1.0 
+TIME 1 YEARS ATOMS
+FLUX 0
+zero                    << Cooling down >>
+time 0        atoms
+time 1        atoms
+time 1 days   atoms
+time 1 months atoms
+time 1 years  atoms
+END 
+* End of inventory calcs for XXX
+
