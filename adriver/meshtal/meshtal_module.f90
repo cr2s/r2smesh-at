@@ -1,11 +1,74 @@
 ! Module to read meshtal.
 module meshtal
-    use gen, only: get_line, read_line
-    integer, parameter:: nt = 1
+    use proc
+    use gen, only: get_line, read_line, print_log
+
+    real, allocatable:: xf(:), yf(:), zf(:), ef(:), vf(:, :, :, :, :), & ! fine mesh
+                        xc(:), yc(:), zc(:), ec(:), vc(:, :, :, :, :)    ! coarse mesh
+
     private
-    public:: get_nps, get_next_tally, write_tally_log
+    public:: xf, yf, zf, ef, vf, &
+             xc, yc, zc, ec, vc, &
+             get_fluxes, get_mesh_volume 
 
     contains
+        subroutine get_fluxes
+            ! Populate meshtally arrays for flxu intensity and spectra
+            if (pr_id .eq. 0) then
+                call print_log('Read meshtal.fine ... ')
+                open(pr_inp, file='meshtal.fine')
+                call get_next_tally(pr_inp, nf, xf, yf, zf, ef, vf)
+                close(pr_inp)
+
+                ! Read neutron flux spectra
+                call print_log('Read meshtal.coarse ... ')
+                open(pr_inp, file='meshtal.coarse')
+                call get_next_tally(pr_inp, nc, xc, yc, zc, ec, vc)
+                close(pr_inp)
+
+                ! Write header for DGS files
+                call print_log('Writing header for dgs files to fine_mesh_def ... ')
+                open(pr_out, file='fine_mesh_def')
+                write(pr_out, '(3i6)') size(xf), size(yf), size(zf)
+                n = size(xf)
+                write(pr_out, '(1p<n>e15.6)') xf
+                n = size(yf)
+                write(pr_out, '(1p<n>e15.6)') yf
+                n = size(zf)
+                write(pr_out, '(1p<n>e15.6)') zf
+                close(pr_out)
+            end if
+            ! Broadcast read data to all processes
+            call mpi_bcast(nf, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, pr_er)
+            call mpi_bcast(nc, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, pr_er)
+            call broadcast_1r(xf)
+            call broadcast_1r(yf)
+            call broadcast_1r(zf)
+            call broadcast_1r(ef)
+            call broadcast_5r(vf)
+
+            call broadcast_1r(xc)
+            call broadcast_1r(yc)
+            call broadcast_1r(zc)
+            call broadcast_1r(ec)
+            call broadcast_5r(vc)
+            ! Print log to check that all processes have the same set of data
+            call write_tally_log('Fine   meshtally:', nf, xf, yf, zf, ef, vf)
+            call write_tally_log('Coarse meshtally:', nc, xc, yc, zc, ec, vc)
+        end subroutine
+
+        function get_mesh_volume(i, j, k) result(v)
+            ! Return volume of mesh element i, j, k
+            implicit none
+            integer, intent(in):: i, j, k
+            real:: v
+
+            v = (xf(i + 1) - xf(i)) * & 
+                (yf(j + 1) - yf(j)) * &
+                (zf(k + 1) - zf(k))
+            return 
+        end function get_mesh_volume
+
         function get_nps(fn) result(nps)
             ! read nps from meshtal file opened as unit fn
             implicit none
@@ -68,13 +131,34 @@ module meshtal
             integer, intent(in):: n
             real, intent(in):: x(:), y(:), z(:), e(:), v(:, :, :, :, :)
 
-            write(*, *) title
-            write(*, *) 'Mesh tally number', n
-            write(*, *) 'X boundaries', size(x), x(1), ' ... ', x(size(x))
-            write(*, *) 'Y boundaries', size(y), y(1), ' ... ', y(size(y))
-            write(*, *) 'Z boundaries', size(z), z(1), ' ... ', z(size(z))
-            write(*, *) 'E boundaries', size(e), e(1), ' ... ', e(size(e))
-            write(*, *) 'Shape of v:', shape(v)
+            integer:: s(5), sx, sy, sz, se
+            s = shape(v)
+            sx = size(x)
+            sy = size(y)
+            sz = size(z)
+            se = size(e)
+
+            call print_log(title)
+            write(pr_log, *) 'Mesh tally number', n
+            write(pr_log, 100) 'X', sx, x(1), x(sx), sum(x(:sx/2)),  sum(x(sx/2+1:))
+            write(pr_log, 100) 'Y', sy, y(1), y(sy), sum(y(:sy/2)),  sum(y(sy/2+1:))
+            write(pr_log, 100) 'Z', sz, z(1), z(sz), sum(z(:sz/2)),  sum(z(sz/2+1:))
+            write(pr_log, 100) 'E', se, e(1), e(se), sum(e(:se/2)),  sum(e(se/2+1:))
+            100 format (a3, " boundaries:", i5, 1pe12.4, '---', 1pe12.4, 1p2e12.4)
+            write(pr_log, *) 'Shape of v:', s
+            s = s / 2
+            write(pr_log, 101) '    Sum v(:, :, :, :, :)', sum(v)
+            write(pr_log, 101) '    Sum v(l, :, :, :, :)', sum(v(  :s(1), :, :, :, :))
+            write(pr_log, 101) '    Sum v(r, :, :, :, :)', sum(v(s(1)+1:, :, :, :, :))
+            write(pr_log, 101) '    Sum v(:, l, :, :, :)', sum(v(:,   :s(2), :, :, :))
+            write(pr_log, 101) '    Sum v(:, r, :, :, :)', sum(v(:, s(2)+1:, :, :, :))
+            write(pr_log, 101) '    Sum v(:, :, l, :, :)', sum(v(:, :,   :s(3), :, :))
+            write(pr_log, 101) '    Sum v(:, :, r, :, :)', sum(v(:, :, s(3)+1:, :, :))
+            write(pr_log, 101) '    Sum v(:, :, :, l, :)', sum(v(:, :, :,   :s(4), :))
+            write(pr_log, 101) '    Sum v(:, :, :, r, :)', sum(v(:, :, :, s(4)+1:, :))
+            write(pr_log, 101) '    Sum v(:, :, :, :, l)', sum(v(:, :, :, :,   :s(5)))
+            write(pr_log, 101) '    Sum v(:, :, :, :, r)', sum(v(:, :, :, :, s(5)+1:))
+            101 format (a, 1pe12.4)
 
         end subroutine write_tally_log
 
@@ -98,13 +182,9 @@ module meshtal
             allocate(v(nei, Nx - 1 , Ny - 1, Nz - 1, 2))
             ! Position file to the values header
             l = get_line(fn, 'X         Y         Z', 50)
-            write(*, *) 'Heaader line:' 
-            write(*, *) '|' // l // '|'
-            write(*, *) '|' // l(:10) // '|'
             ! Define wether energy values are given
             if (l(:10) .eq. "   Energy ") then
                 ! There are energy bins and values in the table
-                write(*, *) 'Mesh tally table contains energy'
                 do ie = 1, Ne - 1
                     do ix = 1, Nx - 1
                         do iy = 1, Ny - 1
@@ -117,7 +197,6 @@ module meshtal
                     end do
                 end do
                 if (Ne .gt. 2) then
-                    write(*, *) 'Mesh tally table contains total energy bin'
                     do ix = 1, Nx - 1
                         do iy = 1, Ny - 1
                             do iz = 1, Nz - 1
@@ -130,7 +209,6 @@ module meshtal
                 end if
             else
                 ! There are no energy bins and no energy values in the table.
-                write(*, *) 'Mesh tally table does not contain energy'
                 do ix = 1, Nx - 1
                     do iy = 1, Ny - 1
                         do iz = 1, Nz - 1
@@ -161,7 +239,7 @@ module meshtal
             i = index(ll, ss)
             if (i .eq. 0) then
                 ! Type mismatch. Return empty array
-                write(*, *) ss, ' not in ', ll(:50)
+                write(pr_log, *) ss, ' not in ', ll(:50)
                 allocate(bl(0))
                 return
             else
@@ -176,7 +254,5 @@ module meshtal
                 return
             end if
         end function read_bin_boundaries
-
-
 
 end module meshtal

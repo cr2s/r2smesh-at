@@ -10,7 +10,6 @@ case $host in
         ;;
     "r000u"*)
         # Marconi cluster
-        module load env-skl
         module load intel intelmpi
         ;;
     *)

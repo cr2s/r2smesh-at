@@ -1,14 +1,24 @@
 #!/bin/bash
 
-# compile adriver.exe 
+# compile adriver.exe
 
-. ./modules.sh 
+. ./modules.sh
 
-mpiifort -mcmodel=large -debug full \
+rm *.mod *.o adriver.exe
+
+mpiifort -mcmodel=large \
+         -debug full  \
+         -traceback  \
+         -gen-interfaces  \
+         -warn interfaces \
+         -check \
+         -fpe0 \
             -o adriver.exe \
-            io_module.f90 \
-            env_module.f90 \
+            proc_module.f90 \
             gen_module.f90 \
             meshtal_module.f90 \
+            matcomp_module.f90 \
+            matall_module.f90 \
+            env_module.f90 \
             fd_module.f90 \
             adriver.f90 \
