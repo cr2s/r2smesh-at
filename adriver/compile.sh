@@ -6,13 +6,7 @@
 
 rm *.mod *.o adriver.exe
 
-mpiifort -mcmodel=large \
-         -debug full  \
-         -traceback  \
-         -gen-interfaces  \
-         -warn interfaces \
-         -check \
-         -fpe0 \
+$fcc $opt \
             -o adriver.exe \
             proc_module.f90 \
             gen_module.f90 \

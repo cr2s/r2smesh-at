@@ -136,8 +136,61 @@ module fispactdriver
                 return
             end if
 
+            ! Run collapse, if not done previously
             if (cstat .eq. 0) then
-                call run_collapse
+                call run_collapse(ic, jc, kc)
+                cstat = 1
+            end if
+
+            ! Prepare material composition
+            fname = get_file_name(r2s_scratch, '/mat.content', ".", (/i, j, k/))
+            call report_file_name('Writing composition to', fname)
+            open(pr_out, file=fname)
+            tnon = 0
+            for i_c = 1, size(cind)
+                if (mind(i_c) .gt. 0) then 
+                    call write_mat_fispact(pr_out,                 &  ! unit
+                                           mind(i_c),              &  ! material index
+                                           v*frac(i_c)*conc(i_c),  &  ! amount of material in cell i_c
+                                           non)                       ! out, number of entries in this material
+                    tnon = tnon + non
+                end if
+            end do
+            close(pr_out)
+            fname = get_file_name(r2s_scratch, '/mat.title', ".", (/i, j, k/))
+            call report_file_name('Writing mat title to', fname)
+            open(pr_out, file=fname)
+            write(pr_out, *) 'DENSITY', den
+            write(pr_out, *) 'FUEL', non
+            close(pr_out)
+
+            ! Write irradiation scenario
+            open(pr_inp, file='inv_input.footer')  ! irradiation scenario template
+            fname = get_file_name(r2s_scratch, '/scenario', ".", (/i, j, k/))
+            call report_file_name('Writing scenario to', fname)
+            open(pr_out, file=fname)
+            flux_normalized = .FALSE.
+            do while(.not. eof(pr_inp))
+                l = read_line(pr_inp)
+                read(l, *, iostat=ist) kw, v
+                if (ist .eq. 0 .and. to_lower(kw) .eq. "flux") then
+                    ! This line contain FLUX keyword
+                    ist = index(l, kw)
+                    write(pr_out, '(a, 1pe)') l(:ist+4), v*f
+                    flux_normalized = .TRUE.
+                else
+                    write(pr_out, '(a)') l
+                end if
+            end do
+            close(pr_inp)
+            if (flux_normalized) then
+                write(pr_out, '("<< Flux normalized by", 1pe12.5, " >>" )') f 
+            end if
+            close(pr_out)
+            fname = get_file_name('', './inventory1.sh', " ", (/i, j, k, ic, jc, kc/))
+            call report_file_name('Calling script: ', fname)
+            ist = system(fname)
+            istat = 1
         else
             if (nmats .gt. 0) write(pr_log, *) 'WARNING: Zero flux in non-void fine mesh element', i, j, k
             istat = 0
@@ -226,28 +279,26 @@ module fispactdriver
         ist = system("./condense.sh ")
     end subroutine run_condense
 
-    subroutine run_collapse(s, ijk)      
+    subroutine run_collapse(i, j, k)      
         ! prepare folder to start fispact collapse with spectrum s
         implicit none
-        real, intent(in):: s(:)
-        integer, intent(in):: ijk(:)  ! indices of the coarse mesh where spectrum is collapsed
+        integer, intent(in):: i, j, k  ! indices of the coarse mesh where spectrum is collapsed
         ! local vars
-        integer:: ist, n, i
+        integer:: ist, n, l
         character (len=:), allocatable:: fname
 
-        ! Write spectrum s to standard place 
-        n = size(s)
+        n = size(vc(1, i, j, k, :))
         ! standard spectrum filename
-        fname = get_file_name(r2s_scratch, '/fluxes', ".", ijk)
+        fname = get_file_name(r2s_scratch, '/fluxes', ".", (/i, j, k/))
         call report_file_name('Writing spectrum to', fname)
         open(pr_out, file=fname)
-        write(pr_out, *) (s(i), i = n-1, 1, -1)  ! s contains also the total value, which is not needed here
+        write(pr_out, *) (vc(1, i, j, k, l), l = n-1, 1, -1)  ! vc contains also the total value, which is not needed here
         write(pr_out, *) 1.0          ! First wall loading. Does not matter (?)
         write(pr_out, *) 'Spectrum for ', ijk, ' written' 
         close(pr_out)
 
         ! Prepare the script command:
-        fname = get_file_name('', './collapse1.sh', " ", ijk)
+        fname = get_file_name('', './collapse1.sh', " ", (/i, j, k/))
         call report_file_name('Calling script', fname)
         ! Call external script to create the working folder
         ist = system(fname)
