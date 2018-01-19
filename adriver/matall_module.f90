@@ -172,11 +172,17 @@ module matall
             ! have the same set of data
             implicit none
             integer:: i, j, k, i1, i2, n, l
+            integer:: di, dj, dk
+
+            ! Print out every di-, dj- and dk-th element to keep output fast and small
+            di = size(ma_3(:, 1, 1)) / 10
+            dj = size(ma_3(1, :, 1)) / 10
+            dk = size(ma_3(1, 1, :)) / 10
 
             write(pr_log, *) 'Material allocation:'
-            do i = 1, size(ma_3(:, 1, 1))
-                do j = 1, size(ma_3(1, :, 1))
-                    do k = 1, size(ma_3(1, 1, :))
+            do i = 1, size(ma_3(:, 1, 1)), di
+                do j = 1, size(ma_3(1, :, 1)), dj
+                    do k = 1, size(ma_3(1, 1, :)), dk
                         l = ma_3(i, j, k)
                         if (l .gt. 0) then
                             i1 = ma_i(l-1) + 1

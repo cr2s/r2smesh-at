@@ -3,13 +3,14 @@ module fispactdriver
     use ifport
     use proc
     use matcomp
+    use meshtal, only: vf, vc
     use gen, only: to_lower, read_line, get_line, ijk2str
     use r2senv, only: r2s_fwd, r2s_scratch
    
 
     private
     public:: f_name, f_get_name, run_condense, run_collapse, run_inventory, &
-             read_tab4, write_gi
+             read_tab4, write_gi, run_inventory2
     contains
     subroutine read_tab4(ijkf, gi)
         ! Read 2-nd column in the tab4 file for each time step
@@ -106,6 +107,46 @@ module fispactdriver
         if (n .gt. nmax) n = nmax
         write(pr_log, '(a<nmax>, ": ", a)') cmnt(:n), fname
     end subroutine report_file_name
+
+    subroutine run_inventory2(i, j, k, istat, ic, jc, kc, cstat, dryrun)
+        ! Run inventory calculation for a mixture of materials in the fine mesh element.
+        implicit none
+        integer, intent(in):: i, j, k, ic, jc, kc  ! indices of the fine and coarse meshes
+        integer, intent(out):: istat               ! Status of inventory run. 0 -- not run, 1 -- run
+        integer, intent(inout):: cstat             ! If 0 -- run collapse when necessary and return 1. Otherwise dont run collapse and return 1
+        logical, intent(in):: dryrun               ! Count runs, but do actually nothing
+
+        ! local vars
+        integer, allocatable:: cind(:), mind(:)
+        real, allocatable:: frac(:), dens(:), conc(:)
+        integer:: nmats  ! number of materials in the fine mesh element
+
+        ! Get properties of cells in the current mesh element
+        call get_ma_properties(i, j, k, cind, frac, mind, dens, conc, v)
+        nmats = count(mind .gt. 0)
+        
+        ! Get flux intensity in the fine mesh element
+        f = vf(1, i, j, k, 1)
+
+        if (f .gt. 0 .and. nmats .gt. 0) then
+            ! Non-zero flux in non-void element: run fispact
+            if (dryrun) then
+                istat = 1
+                cstat = 1
+                return
+            end if
+
+            if (cstat .eq. 0) then
+                call run_collapse
+        else
+            if (nmats .gt. 0) write(pr_log, *) 'WARNING: Zero flux in non-void fine mesh element', i, j, k
+            istat = 0
+            cstat = cstat
+        end if
+        return 
+    end subroutine run_inventory2
+
+
 
 
     subroutine run_inventory(f, mindex, den, amount, ijkf, ijkc)

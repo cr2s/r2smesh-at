@@ -170,16 +170,7 @@ program adriver
         integer:: nmf      ! number of materials in fine mesh element
 
         real, allocatable:: fmgi(:, :) ! fine mesh gamma intensity for each time step
-        real, allocatable:: t4gi(:, :) ! Current tab4 results for each time step
-        real:: volc
-        integer:: i_m ! index for material in fine mesh element
-        integer:: nfrf
         character (len=200):: msg
-
-        integer, allocatable:: cind(:), mind(:)
-        real, allocatable:: frac(:), dens(:), conc(:)
-        real:: v
-
 
         ! Write log
         if (.not. dryrun) then 
@@ -202,82 +193,17 @@ program adriver
         if (.not. dryrun) then
             write(pr_log, '(a, 3(5x, 2i5))') 'Fine mesh indices:', if1, if2-1, jf1, jf2-1, kf1, kf2-1
         end if
-        nfr = 0  ! number of fispact runs for the current coarse mesh element
+
         do i = if1, if2 - 1
             do j = jf1, jf2 - 1
                 do k = kf1, kf2 - 1
                     if (.not. dryrun) write(pr_log, *) 'Fine mesh element', i, j, k
-                    ! In mcnp, the nmt array containing material names starts from 0, and initially set
-                    ! to 0. Thus I assume that the material index 0 always corresponds to material 0 and
-                    ! can be used to identify void cells: cell with index i is void when mat(i) is 0.
 
-                    ! get cell properties for the current mesh element
-                    call get_ma_properties(i, j, k, cind, frac, mind, dens, conc, v)
-                    nmf = count(mind .gt. 0)  ! number of non-zero materials in the current fine mesh
-                    ! run inventory only when non-zero flux
-                    if (vf(1, i, j, k, 1) .eq. 0) then 
-                        ! Report that for a non-void fine mesh element a zero flux detected
-                        if (.not. dryrun .and. nmf .gt. 0) write(pr_log, *) 'WARNING: zero flux in fine mesh element', i, j, k
-                        cycle
-                    end if
-                    nfrf = 0  ! number of fispact inventory runs for the current fine mesh element
-                    if (nmf .gt. 0) then 
-                        if (.not. dryrun) then
-                            write(pr_log, *) 'Number of non-zero materials:', nmf
-                            write(pr_log, *) '                Cell indices:', cind 
-                            write(pr_log, *) '            Material indices:', mind
-                        end if
-                        if (.not. collapse_completed) then
-                            ! Get spectrum: run fispact collapse once for the current coarse mesh element
-                            if (.not. dryrun) then
-                                call run_collapse(vc(:, ic, jc, kc, 1), ijkc)
-                            end if
-                            collapse_completed = .TRUE.
-                        end if
-                        ! Run inventory calculations for all non-void cells in the fine mesh element
-                        do i_m = 1, size(cind) 
-                            if (mind(i_m) .gt. 0) then   ! run fispact only for non-void cells
-                                ijkf = (/i, j, k, cind(i_m)/)
-                                nfrf = nfrf + 1
-                                if (.not. dryrun) then
-                                    volc = v * frac(i_m)                           ! volume of the cell in the fine mesh element
-                                    call run_inventory(vf(1, i, j, k, 1),       & ! flux intensity
-                                                       mind(i_m),               & ! material index, for composition 
-                                                       dens(i_m),               & ! Cell density, g/cm3, passed to "DENSITY" keyword
-                                                       conc(i_m)*volc*1e24,     & ! Total amount of material. tab1 and tab2 are normalized to this value.
-                                                       ijkf,                    & ! Indides identifying fine mesh element and the cell
-                                                       ijkc)                      ! Indices identifying correspondent collapse run
-                                    if (nfrf .eq. 1) then
-                                        ! After the first non-void cell, read tab4 directly into fmgi
-                                        call read_tab4(ijkf, fmgi)
-                                        fmgi = fmgi * volc   ! tab4 normalized per 1 cm3. Multiply by cell volume to get 1/s
-                                    else
-                                        ! read tab4 into temporary array and add to fmgi
-                                        call read_tab4(ijkf, t4gi)
-                                        fmgi = fmgi + t4gi * volc 
-                                    end if
-                                end if
-                            end if
-                        end do
-                        ! Write decay gamma source for current fine mesh element
-                        if (.not. dryrun) call write_gi(ijkf, fmgi)
-
-                        ! Combine fispact results into single gamma spectrum for the current fine mesh element.  For this one needs
-                        ! total amount of materials, i.e. vol. fractions, volume of the mesh element and cell densities.
-                        !
-                        ! TAB4 output files contain two columns: 1) gamma power in energy group, MeV/s, which is proportional to the
-                        ! amount of material specified in the FUEL card, and 2) Gammas per group per cc and per second, 1/s/cc,
-                        ! which depends on the dinsity given in the DENSITY card. For the decay gamma source, the number of gammas
-                        ! per group is needed, i.e. 2-nd column. It must be normalized to the total volume of the irradiated
-                        ! material in the fine mesh element. 
-                        !
-                        ! Here -- DGS format based on my DGS subroutine. What is needed: (1) fine mesh geometry, (2) gammas per
-                        ! group in fine mesh element. 
-                        ! 
-                        ! Complete sourse cannot be formed untill all inventory runs are complete. However, at this point one can
-                        ! write dgs entry for the current fine mesh element. THey can be later contatenated by system utilities.
-                    end if
-                    nfr = nfr + nfrf
+                    call run_inventory2(i, j, k,    &  ! in,  specify fine mesh element 
+                                        inv_status, &  ! out, get whether inventory was actually run
+                                        ic, jc, kc, &  ! in, specify coarse mesh element
+                                        col_status, &  ! in/out, get whether collpase is needed and was actually run
+                                        dryrun)        ! Flag to actually run fispact
                 end do
             end do
         end do
