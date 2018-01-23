@@ -4,7 +4,7 @@ program adriver
     use gen, only: print_log, ijk2str
     use meshtal
     use matall
-    use fispactdriver, only: run_condense, run_collapse_clean, run_inventory2, read_tab4, write_cgi
+    use fispactdriver, only: run_condense, run_collapse_clean, run_inventory2, read_tab4, write_cgi, check_cgi
     use r2senv, only: env_init
     implicit none
 
@@ -163,9 +163,10 @@ program adriver
         logical, intent(in):: dryrun ! If TRUE, fispact not actually started, only numer of runs is computed
 
         ! local variables
+        logical:: ldryrun  ! local value of dryrun, to change if needed
         integer:: i, j, k  ! indices for fine mesh elements
         integer:: ijkf(4), ijkc(3)
-        integer:: if1, if2, jf1, jf2, kf1, kf2  ! index bounds of fine mesh elements in a coarse one
+        integer:: i1, i2, j1, j2, k1, k2  ! index bounds of fine mesh elements in a coarse one
         integer:: inv_status, col_status
 
         real, allocatable:: & 
@@ -174,6 +175,7 @@ program adriver
 
         character (len=200):: msg
 
+
         ! Write log
         if (.not. dryrun) then 
             write(msg, '("Starting coarse element ", 3i5, ". Completed fispact inventory runs: ", i6, f9.4" %")') ic, jc, kc, nfr, float(nfr)/nfirtot
@@ -181,35 +183,44 @@ program adriver
         end if
 
         ! Get subset of finemesh element in the current coarse mesh element
-        if1 = count(xf .le. xc(ic))
-        if2 = count(xf .le. xc(ic + 1))
-        jf1 = count(yf .le. yc(jc))
-        jf2 = count(yf .le. yc(jc + 1))
-        kf1 = count(zf .le. zc(kc))
-        kf2 = count(zf .le. zc(kc + 1))
+        i1 = count(xf .le. xc(ic))
+        i2 = count(xf .le. xc(ic + 1))
+        j1 = count(yf .le. yc(jc))
+        j2 = count(yf .le. yc(jc + 1))
+        k1 = count(zf .le. zc(kc))
+        k2 = count(zf .le. zc(kc + 1))
         ijkc = (/ic, jc, kc/)
         if (.not. dryrun) then
-            write(pr_log, '(a, 3(5x, 2i5))') 'Fine mesh indices:', if1, if2-1, jf1, jf2-1, kf1, kf2-1
+            write(pr_log, '(a, 3(5x, 2i5))') 'Fine mesh indices:', i1, i2-1, j1, j2-1, k1, k2-1
         end if
 
         col_status = 0
         nfr = 0
 
-        do i = if1, if2 - 1
-            do j = jf1, jf2 - 1
-                do k = kf1, kf2 - 1
+        ! From here, the value of ldryrun should be used
+        ldryrun = dryrun
+        if (.not. ldryrun) then
+            ! check if the resulting file already exists and skip fispact runs
+            ldryrun = check_cgi((/ic, jc, kc/))
+            if (ldryrun) write(pr_log, *) 'CGI file exists. Fispact runs skipped.'
+        end if
+
+
+        do i = i1, i2 - 1
+            do j = j1, j2 - 1
+                do k = k1, k2 - 1
                     call run_inventory2(i, j, k,    &  ! in,  specify fine mesh element 
                                         inv_status, &  ! out, get whether inventory was actually run
                                         ic, jc, kc, &  ! in, specify coarse mesh element
                                         col_status, &  ! in/out, get whether collpase is needed and was actually run
                                         fgi,        &  ! Gamma intensities computed in the fine mesh element
-                                        dryrun)        ! Flag to actually run fispact
+                                        ldryrun)        ! Flag to actually run fispact
                     nfr = nfr + inv_status
-                    if (.not. dryrun .and. inv_status .gt. 0) then
+                    if (.not. ldryrun .and. inv_status .gt. 0) then
                         if (.not. allocated(cgi)) then
-                            allocate(cgi(if1: if2 - 1,    & 
-                                         jf1: jf2 - 1,    & 
-                                         kf1: kf2 - 1,    & 
+                            allocate(cgi(i1: i2 - 1,    & 
+                                         j1: j2 - 1,    & 
+                                         k1: k2 - 1,    & 
                                          size(fgi(:, 1)), & 
                                          size(fgi(1, :))))
                             cgi = 0.0
@@ -221,8 +232,8 @@ program adriver
             end do
         end do
         ! Write gamma intensities for the coarse mesh element
-        if (.not. dryrun .and. nfr .gt. 0) then 
-            call write_cgi((/ic, jc, kc/), if1, jf1, kf1, cgi)
+        if (.not. ldryrun .and. nfr .gt. 0) then 
+            call write_cgi((/ic, jc, kc/), i1, j1, k1, cgi)
             call run_collapse_clean(ic, jc, kc)
         end if
         return

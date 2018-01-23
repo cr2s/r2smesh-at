@@ -11,7 +11,7 @@ module fispactdriver
 
     private
     public:: f_name, f_get_name, run_condense, run_collapse, run_collapse_clean, run_inventory, &
-             read_tab4, write_cgi, run_inventory2
+             read_tab4, write_cgi, check_cgi, run_inventory2
     contains
     subroutine read_tab4(ijk, gi)
         ! Read 2-nd column in the tab4 file for each time step
@@ -59,6 +59,21 @@ module fispactdriver
         gi(1:i_emax, 1:i_t) = tgi(1:i_emax, 1:i_t)
         return
     end subroutine read_tab4
+
+    function check_cgi(ijk) result(cgi_exists)
+        implicit none
+        integer, intent(in):: ijk(:)  ! indices of the coarse mesh element
+        logical:: cgi_exists
+
+        ! local vars
+        character (len=:), allocatable:: fname
+        
+        ! Check cgi for time interval 3.
+        fname = get_file_name(r2s_fwd, '/gi/cgi', ".", (/3, ijk(1), ijk(2), ijk(3)/))
+        write(pr_log, *) "Checking existence of " // fname
+        inquire(file=fname, exist=cgi_exists)
+        return
+    end function check_cgi
 
     subroutine write_cgi(ijk, i1, j1, k1, cgi)
         implicit none
