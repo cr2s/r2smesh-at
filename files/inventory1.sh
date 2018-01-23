@@ -5,8 +5,8 @@
 # Input file is constructed by the driver.
 
 
-wd="$r2s_fwd/inv/$1/$2/$3.$4" 
-cl=$(realpath "$r2s_fwd/col/$5/$6/$7")
+wd="$r2s_fwd/inv/$1/$2/$3" 
+cl=$(realpath "$r2s_fwd/col/$4/$5/$6")
 cn=$(realpath "$r2s_fwd/cond")
 
 if [ ! -d "$wd" ]; then
@@ -24,18 +24,18 @@ if [ ! -d "$wd" ]; then
     # header is copied to the input as is by the next script, material is added by
     # the driver and the footer (irradiation scenario), adjusted by the driver, is
     # copied to the input by the next script.
-    mv "$r2s_scratch/scenario.$1.$2.$3.$4"     "$wd"/.
-    mv "$r2s_scratch/mat.content.$1.$2.$3.$4"  "$wd"/.
-    mv "$r2s_scratch/mat.title.$1.$2.$3.$4"    "$wd"/.
+    ln -s "$r2s_scratch/scenario.$1.$2.$3"     "$wd"/.
+    ln -s "$r2s_scratch/mat.content.$1.$2.$3"  "$wd"/.
+    ln -s "$r2s_scratch/mat.title.$1.$2.$3"    "$wd"/.
     cd $wd
     if [ ! -f inventory.tab4 ]; then
         # Currently, the input file name `inventory` is hardcoded in fortran!
         cat ./inv_input.header \
-            ./mat.title.$1.$2.$3.$4 \
-            ./mat.content.$1.$2.$3.$4 \
-            ./scenario.$1.$2.$3.$4 > inventory.i
+            ./mat.title.$1.$2.$3 \
+            ./mat.content.$1.$2.$3 \
+            ./scenario.$1.$2.$3 > inventory.i
         "$r2s_fsp_exe" inventory > fispact.out
-        cp inventory.tab4 $(realpath $r2s_scratch)/tab4.$1.$2.$3.$4
+        cp inventory.tab4 $(realpath $r2s_scratch)/tab4.$1.$2.$3
     fi    
     cd ..
     exit 0

@@ -11,7 +11,7 @@ if [ ! -d "$d" ]; then
     ln -s $o/clp_files.template "$d"/files
     ln -s $o/clp_input.template "$d"/collapse.i
     ln -s $r2s_fsp_data "$d"/fispact-data
-    mv "$r2s_scratch/fluxes.$1.$2.$3" "$d"/fluxes
+    ln -s "$r2s_scratch/fluxes.$1.$2.$3" "$d"/fluxes
     o="$(pwd)"
     cd "$d"
     if [ ! -f collapx ]; then 

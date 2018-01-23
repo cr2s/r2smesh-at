@@ -4,7 +4,7 @@ program adriver
     use gen, only: print_log, ijk2str
     use meshtal
     use matall
-    use fispactdriver, only: run_condense, run_collapse, run_inventory, read_tab4, write_gi
+    use fispactdriver, only: run_condense, run_collapse_clean, run_inventory2, read_tab4, write_cgi
     use r2senv, only: env_init
     implicit none
 
@@ -163,13 +163,15 @@ program adriver
         logical, intent(in):: dryrun ! If TRUE, fispact not actually started, only numer of runs is computed
 
         ! local variables
-        logical collapse_completed
         integer:: i, j, k  ! indices for fine mesh elements
         integer:: ijkf(4), ijkc(3)
         integer:: if1, if2, jf1, jf2, kf1, kf2  ! index bounds of fine mesh elements in a coarse one
-        integer:: nmf      ! number of materials in fine mesh element
+        integer:: inv_status, col_status
 
-        real, allocatable:: fmgi(:, :) ! fine mesh gamma intensity for each time step
+        real, allocatable:: & 
+            fgi(:, :), &         ! Gamma intensity in fine mesh element
+            cgi(:, :, :, :, :)   ! Gamma intensities in all fine mesh elements in the current coarse mesh element
+
         character (len=200):: msg
 
         ! Write log
@@ -177,10 +179,6 @@ program adriver
             write(msg, '("Starting coarse element ", 3i5, ". Completed fispact inventory runs: ", i6, f9.4" %")') ic, jc, kc, nfr, float(nfr)/nfirtot
             call print_log(trim(msg))
         end if
-
-        ! Collapse should run only when there are materials in the coarse mesh element.
-        ! THerefore, trigger only after having found any of them below.
-        collapse_completed = .FALSE.
 
         ! Get subset of finemesh element in the current coarse mesh element
         if1 = count(xf .le. xc(ic))
@@ -194,19 +192,39 @@ program adriver
             write(pr_log, '(a, 3(5x, 2i5))') 'Fine mesh indices:', if1, if2-1, jf1, jf2-1, kf1, kf2-1
         end if
 
+        col_status = 0
+        nfr = 0
+
         do i = if1, if2 - 1
             do j = jf1, jf2 - 1
                 do k = kf1, kf2 - 1
-                    if (.not. dryrun) write(pr_log, *) 'Fine mesh element', i, j, k
-
                     call run_inventory2(i, j, k,    &  ! in,  specify fine mesh element 
                                         inv_status, &  ! out, get whether inventory was actually run
                                         ic, jc, kc, &  ! in, specify coarse mesh element
                                         col_status, &  ! in/out, get whether collpase is needed and was actually run
+                                        fgi,        &  ! Gamma intensities computed in the fine mesh element
                                         dryrun)        ! Flag to actually run fispact
+                    nfr = nfr + inv_status
+                    if (.not. dryrun .and. inv_status .gt. 0) then
+                        if (.not. allocated(cgi)) then
+                            allocate(cgi(if1: if2 - 1,    & 
+                                         jf1: jf2 - 1,    & 
+                                         kf1: kf2 - 1,    & 
+                                         size(fgi(:, 1)), & 
+                                         size(fgi(1, :))))
+                            cgi = 0.0
+                        end if
+                        ! Inventory calcualtion was actually run. Store gamma intensities
+                        cgi(i, j, k, :, :) = fgi
+                    end if
                 end do
             end do
         end do
+        ! Write gamma intensities for the coarse mesh element
+        if (.not. dryrun .and. nfr .gt. 0) then 
+            call write_cgi((/ic, jc, kc/), if1, jf1, kf1, cgi)
+            call run_collapse_clean(ic, jc, kc)
+        end if
         return
 
     end subroutine process_coarse_element

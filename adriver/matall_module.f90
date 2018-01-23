@@ -156,16 +156,62 @@ module matall
 
         subroutine p_write_cmi_log
             implicit none
-            integer:: n
             call print_log('Cell/matetial indices, names and densities:')
-            n = size(cnam)
-            write(pr_log, '("Cell names         ", <n>i12)') cnam
-            write(pr_log, '("Cell mat. indices  ", <n>i12)') cmat
-            write(pr_log, '("Cell densities     ", 1p<n>e12.4)') cden
-            write(pr_log, '("Cell concentrations", 1p<n>e12.4)') ccon
-            n = size(mnam)
-            write(pr_log, '("Material names ", <n>i6)') mnam
+
+            call print_array_i("Cell names          ", cnam, pr_log, 50)
+            call print_array_i("Cell mat. indices   ", cmat, pr_log, 50)
+            call print_array_r("Cell densities      ", cden, pr_log, 50)
+            call print_array_r("Cell concentrations ", ccon, pr_log, 50)
+            call print_array_i("Material names      ", mnam, pr_log, 50)
         end subroutine
+
+        subroutine print_array_i(title, a, funit, nmax)
+            implicit none
+            character (len=*), intent(in):: title
+            integer, intent(in):: a(:)
+            integer, intent(in):: funit, nmax
+
+            integer:: n, n1, n2, i
+            integer, allocatable:: ind(:)
+
+            n = size(a)
+            allocate(ind(n))
+            do i = 1, n
+                ind(i) = i
+            end do
+            if (n .le. nmax) then
+                write(funit, '(a, ": ", 4x, <n>i12)') title, a
+            else
+                n1 = nmax / 2 - 1
+                n2 = n - n1 + 1
+                write(funit, '(a, ": ", 4x, <n1>i12, " ... ", <n1>i12)') title, a(1:n1), a(n2:n)
+            end if
+            return
+        end subroutine print_array_i
+
+        subroutine print_array_r(title, a, funit, nmax)
+            implicit none
+            character (len=*), intent(in):: title
+            real, intent(in):: a(:)
+            integer, intent(in):: funit, nmax
+
+            integer:: n, n1, n2, i
+            integer, allocatable:: ind(:)
+
+            n = size(a)
+            allocate(ind(n))
+            do i = 1, n
+                ind(i) = i
+            end do
+            if (n .le. nmax) then
+                write(funit, '(a, ": ", 4x, 1p<n>e12.4)') title, a
+            else
+                n1 = nmax / 2 - 1
+                n2 = n - n1 + 1
+                write(funit, '(a, ": ", 4x, 1p<n1>e12.4, " ... ", 1p<n1>e12.4)') title, a(1:n1), a(n2:n)
+            end if
+            return
+        end subroutine print_array_r
 
         subroutine p_write_matall_log
             ! Dump material allocation arrays to the log files, to ckeck that all processes
@@ -189,8 +235,8 @@ module matall
                             i2 = ma_i(l)
                             n = i2 - i1 + 1
                             write(pr_log, '(3i5, \)') i, j, k
-                            write(pr_log, '(<n>i6)') ma_ci(i1: i2)
-                            write(pr_log, '(15x, <n>i6)') ma_ch(i1: i2)
+                            write(pr_log, '(<n>i9)') ma_ci(i1: i2)
+                            write(pr_log, '(15x, <n>i9)') ma_ch(i1: i2)
                         end if
                     end do
                 end do

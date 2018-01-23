@@ -3,34 +3,36 @@ module fispactdriver
     use ifport
     use proc
     use matcomp
+    use matall
     use meshtal, only: vf, vc
     use gen, only: to_lower, read_line, get_line, ijk2str
     use r2senv, only: r2s_fwd, r2s_scratch
    
 
     private
-    public:: f_name, f_get_name, run_condense, run_collapse, run_inventory, &
-             read_tab4, write_gi, run_inventory2
+    public:: f_name, f_get_name, run_condense, run_collapse, run_collapse_clean, run_inventory, &
+             read_tab4, write_cgi, run_inventory2
     contains
-    subroutine read_tab4(ijkf, gi)
+    subroutine read_tab4(ijk, gi)
         ! Read 2-nd column in the tab4 file for each time step
         implicit none
         real, intent(out), allocatable:: gi(:, :)
-        integer, intent(in):: ijkf(:)
+        integer, intent(in):: ijk(:)
         ! local vars
-        character (len=:), allocatable:: l
-        character (len=35):: cmnd
+        character (len=:), allocatable:: fname, l
         real:: v, tgi(1:30, 0:500)  ! number of groups, number of time intervals. i_t = 0 is for the case when 1-st interval contains no spectrum
-        integer:: i_emax, n
+        integer:: i_emax
         integer:: i_e, i_t
 
         i_e = 0
         i_t = 0
         i_emax = 0
         tgi = 0.0
-        n = size(ijkf)
-        write(cmnd, '(a, <n>(".", i0))') '/tab4', ijkf
-        open(pr_inp, file=r2s_scratch // cmnd)
+
+        fname = get_file_name(r2s_scratch, '/tab4', ".", ijk)
+        call report_file_name('Reading gamma intensity from', fname)
+        open(pr_inp, file=fname)
+
         do while (.not. eof(pr_inp))
             l = read_line(pr_inp)
             if (index(l, 'INTERVAL') .gt. 0) then
@@ -50,12 +52,50 @@ module fispactdriver
                 read(l(index(l, 'MeV)') + 5:), *) v, tgi(i_e, i_t)
             end if
         end do
+        call report_file_name('                        Read', fname)
+        close(pr_inp)
         ! Prepare output array
         allocate(gi(i_emax, i_t))
         gi(1:i_emax, 1:i_t) = tgi(1:i_emax, 1:i_t)
-        close(pr_inp)
         return
     end subroutine read_tab4
+
+    subroutine write_cgi(ijk, i1, j1, k1, cgi)
+        implicit none
+        integer, intent(in):: ijk(:)  ! indices of the coarse mesh element
+        integer, intent(in):: i1, j1, k1 ! Starting indices of fine mesh elements
+        real, intent(in):: cgi(i1:, j1:, k1:, :, :) ! gamma intensities in all fine mesh elements in the coarse mesh element
+
+        ! local vars
+        integer:: i, j, k, l, m, ne, nt, i2, j2, k2
+        character (len=:), allocatable:: fname
+        
+        ne = size(cgi(i1, j1, k1, :, 1))  ! number of energy groups
+        nt = size(cgi(i1, j1, k1, 1, :))  ! number of time intervals
+        i2 = size(cgi(:,  j1, k1, 1, 1)) + i1 - 1
+        j2 = size(cgi(i1,  :, k1, 1, 1)) + j1 - 1
+        k2 = size(cgi(i1, j1,  :, 1, 1)) + k1 - 1
+
+        do l = 1, nt
+            ! Write when at least one of fine mesh elements has non-zero gamma intensity
+            if (sum(cgi(:, :, :, :, l)) .gt. 0.0) then
+                fname = get_file_name(r2s_fwd, '/gi/cgi', ".", (/l, ijk(1), ijk(2), ijk(3)/))
+                call report_file_name('Writing gamma intensity to', fname)
+                open(pr_out,   file=fname)
+                do i = i1, i2
+                do j = j1, j2
+                do k = k1, k2
+                    if (sum(cgi(i, j, k, :, l)) .gt. 0.0) then 
+                        write(pr_out,   '(i, 3i, 1p<ne>e13.5)') l, i, j, k, (cgi(i, j, k, m, l), m = 1, ne)
+                    end if
+                end do
+                end do
+                end do
+                close(pr_out)
+            end if
+        end do
+        return
+    end subroutine write_cgi
 
     subroutine write_gi(ijk, gi)
         implicit none
@@ -108,25 +148,38 @@ module fispactdriver
         write(pr_log, '(a<nmax>, ": ", a)') cmnt(:n), fname
     end subroutine report_file_name
 
-    subroutine run_inventory2(i, j, k, istat, ic, jc, kc, cstat, dryrun)
+    subroutine run_inventory2(i, j, k, istat, ic, jc, kc, cstat, gi, dryrun)
         ! Run inventory calculation for a mixture of materials in the fine mesh element.
         implicit none
         integer, intent(in):: i, j, k, ic, jc, kc  ! indices of the fine and coarse meshes
         integer, intent(out):: istat               ! Status of inventory run. 0 -- not run, 1 -- run
         integer, intent(inout):: cstat             ! If 0 -- run collapse when necessary and return 1. Otherwise dont run collapse and return 1
+        real, allocatable, intent(out):: gi(:, :)  ! Gamma intensities in time intervals
         logical, intent(in):: dryrun               ! Count runs, but do actually nothing
 
         ! local vars
         integer, allocatable:: cind(:), mind(:)
         real, allocatable:: frac(:), dens(:), conc(:)
+        real:: v, evol, f, den
         integer:: nmats  ! number of materials in the fine mesh element
+        integer:: tnon, non
+        integer:: i_c, ist
+        character (len=:), allocatable:: fname  ! max len: 20 for script name, 7*6 for indices
+        character (len=:), allocatable:: l
+        character (len=4):: kw
+        logical:: flux_normalized
 
         ! Get properties of cells in the current mesh element
-        call get_ma_properties(i, j, k, cind, frac, mind, dens, conc, v)
+        call get_ma_properties(i, j, k, cind, frac, mind, dens, conc, evol)
+        conc = conc * 1e24  ! convert from MCNP 1/cm/barn to 1/cm3
         nmats = count(mind .gt. 0)
+
         
         ! Get flux intensity in the fine mesh element
         f = vf(1, i, j, k, 1)
+
+        if (.not. dryrun) write(pr_log, 100) i, j, k, nmats, f
+        100 format ("Fine mesh element: ", 3i6, " contains", i4, " materials at flux ", 1pe12.4)
 
         if (f .gt. 0 .and. nmats .gt. 0) then
             ! Non-zero flux in non-void element: run fispact
@@ -147,11 +200,11 @@ module fispactdriver
             call report_file_name('Writing composition to', fname)
             open(pr_out, file=fname)
             tnon = 0
-            for i_c = 1, size(cind)
+            do i_c = 1, size(cind)
                 if (mind(i_c) .gt. 0) then 
                     call write_mat_fispact(pr_out,                 &  ! unit
                                            mind(i_c),              &  ! material index
-                                           v*frac(i_c)*conc(i_c),  &  ! amount of material in cell i_c
+                                           evol*frac(i_c)*conc(i_c),  &  ! amount of material in cell i_c
                                            non)                       ! out, number of entries in this material
                     tnon = tnon + non
                 end if
@@ -160,8 +213,8 @@ module fispactdriver
             fname = get_file_name(r2s_scratch, '/mat.title', ".", (/i, j, k/))
             call report_file_name('Writing mat title to', fname)
             open(pr_out, file=fname)
-            write(pr_out, *) 'DENSITY', den
-            write(pr_out, *) 'FUEL', non
+            write(pr_out, *) 'DENSITY', sum(dens*frac)
+            write(pr_out, *) 'FUEL', tnon
             close(pr_out)
 
             ! Write irradiation scenario
@@ -187,10 +240,23 @@ module fispactdriver
                 write(pr_out, '("<< Flux normalized by", 1pe12.5, " >>" )') f 
             end if
             close(pr_out)
-            fname = get_file_name('', './inventory1.sh', " ", (/i, j, k, ic, jc, kc/))
+            fname = get_file_name('', './inventory.sh', " ", (/i, j, k, ic, jc, kc/))
             call report_file_name('Calling script: ', fname)
             ist = system(fname)
-            istat = 1
+            if (ist .eq. 0) then
+                istat = 1
+                call read_tab4((/i, j, k/), gi)
+                ! Density in invenoty input is the mean density in the fine mesh element
+                gi = gi * evol
+
+                ! Call cleaning script
+                fname = get_file_name('', './inventory_clean.sh', " ", (/i, j, k/))
+                call report_file_name('Calling script: ', fname)
+                ist = system(fname)
+            else
+                write(pr_log, *) "WARNING: Non-zero exit status for " // fname, ist
+            end if
+
         else
             if (nmats .gt. 0) write(pr_log, *) 'WARNING: Zero flux in non-void fine mesh element', i, j, k
             istat = 0
@@ -198,8 +264,6 @@ module fispactdriver
         end if
         return 
     end subroutine run_inventory2
-
-
 
 
     subroutine run_inventory(f, mindex, den, amount, ijkf, ijkc)
@@ -263,7 +327,7 @@ module fispactdriver
             write(pr_out, '("<< Flux normalized by", 1pe12.5, " >>" )') f 
         end if
         close(pr_out)
-        fname = get_file_name('', './inventory1.sh', " ", (/ijkf, ijkc/))
+        fname = get_file_name('', './inventory.sh', " ", (/ijkf, ijkc/))
         call report_file_name('Calling script: ', fname)
         ist = system(fname)
     end subroutine run_inventory
@@ -287,24 +351,40 @@ module fispactdriver
         integer:: ist, n, l
         character (len=:), allocatable:: fname
 
-        n = size(vc(1, i, j, k, :))
+        n = size(vc(:, i, j, k, 1))
         ! standard spectrum filename
         fname = get_file_name(r2s_scratch, '/fluxes', ".", (/i, j, k/))
         call report_file_name('Writing spectrum to', fname)
         open(pr_out, file=fname)
-        write(pr_out, *) (vc(1, i, j, k, l), l = n-1, 1, -1)  ! vc contains also the total value, which is not needed here
+        write(pr_out, *) (vc(l, i, j, k, 1), l = n-1, 1, -1)  ! vc contains also the total value, which is not needed here
         write(pr_out, *) 1.0          ! First wall loading. Does not matter (?)
-        write(pr_out, *) 'Spectrum for ', ijk, ' written' 
+        write(pr_out, *) 'Spectrum for ', i, j, k, ' written' 
         close(pr_out)
 
         ! Prepare the script command:
-        fname = get_file_name('', './collapse1.sh', " ", (/i, j, k/))
+        fname = get_file_name('', './collapse.sh', " ", (/i, j, k/))
         call report_file_name('Calling script', fname)
         ! Call external script to create the working folder
         ist = system(fname)
         return
 
     end subroutine run_collapse
+
+    subroutine run_collapse_clean(i, j, k)      
+        ! prepare folder to start fispact collapse with spectrum s
+        implicit none
+        integer, intent(in):: i, j, k  ! indices of the coarse mesh where spectrum is collapsed
+        ! local vars
+        integer:: ist, n, l
+        character (len=:), allocatable:: fname
+
+        ! Prepare the script command:
+        fname = get_file_name('', './collapse_clean.sh', " ", (/i, j, k/))
+        call report_file_name('Calling script', fname)
+        ist = system(fname)
+        return
+
+    end subroutine run_collapse_clean
 
 
 end module fispactdriver      

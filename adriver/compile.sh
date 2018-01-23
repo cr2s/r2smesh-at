@@ -6,6 +6,9 @@
 
 rm *.mod *.o adriver.exe
 
+echo "Compilation flags:"
+echo $opt
+
 $fcc $opt \
             -o adriver.exe \
             proc_module.f90 \

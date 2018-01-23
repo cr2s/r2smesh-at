@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # target file for cat should be on another disk
-ctgt="$SCRATCH/__dgs_all.1"
-stgt="$SCRATCH/__dgs_all.2"
-trst="$SCRATCH/__dgs_all.r"
+scratch=$CINECA_SCRATCH
+ctgt="$scratch/__dgs_all.1"
+stgt="$scratch/__dgs_all.2"
+trst="$scratch/__dgs_all.r"
 
 
 
