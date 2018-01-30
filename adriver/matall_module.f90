@@ -1,7 +1,8 @@
 ! Module representing material allocation in the mesh
 module matall
+    use r2senv
     use proc
-    use gen, only: print_log, get_line
+    use gen, only: get_line
     use meshtal, only: xf, yf, zf, get_mesh_volume
 
     implicit none
@@ -20,13 +21,12 @@ module matall
     public get_mat_allocation, get_mcnp_names, get_ma_adress
 
     contains
-        subroutine get_mat_allocation(fname)
+        subroutine get_mat_allocation()
             implicit none
-            character (len=*), intent(in):: fname
 
             if (pr_id .eq. 0) then
-                call print_log('Reading material allocation from ' // fname // ' ... ')
-                call p_read_matall(fname)
+                call print_log('Reading ' // r2s_matallocation // ' ... ')
+                call p_read_matall(r2s_matallocation)
             end if
 
             call broadcast_1i(ma_ci, 1)
@@ -41,13 +41,12 @@ module matall
             call check_fine_mesh_content
         end subroutine get_mat_allocation
 
-        subroutine get_mcnp_names(fname)
+        subroutine get_mcnp_names()
             implicit none
-            character (len=*), intent(in):: fname
 
             if (pr_id .eq. 0) then
-                call print_log('Reading cell and material names from ' // fname // ' ... ')
-                call p_read_cmi(fname)
+                call print_log('Reading ' // r2s_cellsmaterials // ' ... ')
+                call p_read_cmi(r2s_cellsmaterials)
             end if
 
             call  broadcast_1i(cnam, 1)
@@ -125,12 +124,12 @@ module matall
             end if
 
             ! First run: get line numbers and number of lines
-            open(pr_inp, file=fname)
-            l = get_line(pr_inp, 'Cell_index', 30)
+            open(pr_scr, file=fname)
+            l = get_line(pr_scr, 'Cell_index', 30)
             mimax = 0
             cimax = 0
-            do while (.not. eof(pr_inp))
-                read(pr_inp, *) ci, cn, i, i, mi, mn, cd, cc
+            do while (.not. eof(pr_scr))
+                read(pr_scr, *) ci, cn, i, i, mi, mn, cd, cc
                 if (mimax .lt. mi) mimax = mi
                 if (cimax .lt. ci) cimax = ci
             end do
@@ -140,17 +139,17 @@ module matall
             allocate(ccon(cimax))
             allocate(mnam(0: mimax))
 
-            rewind(pr_inp)
-            l = get_line(pr_inp, 'Cell_index', 30)
-            do while (.not. eof(pr_inp))
-                read(pr_inp, *) ci, cn, i, i, mi, mn, cd, cc
+            rewind(pr_scr)
+            l = get_line(pr_scr, 'Cell_index', 30)
+            do while (.not. eof(pr_scr))
+                read(pr_scr, *) ci, cn, i, i, mi, mn, cd, cc
                 cnam(ci) = cn
                 cmat(ci) = mi
                 cden(ci) = cd
                 ccon(ci) = cc
                 mnam(mi) = mn
             end do
-            close(pr_inp)
+            close(pr_scr)
             return
         end subroutine p_read_cmi
 
@@ -261,9 +260,9 @@ module matall
             ! First run: get number of non-void elements and max number of cells per element
             l = 0    ! 1-d index of the mesh element
             m = 0    ! Number of entries in the whole file
-            open(pr_inp, file=fname)
-            do while (.not. eof(pr_inp))
-                read(pr_inp, *) i, j, k, xc, yc, zc, n
+            open(pr_scr, file=fname)
+            do while (.not. eof(pr_scr))
+                read(pr_scr, *) i, j, k, xc, yc, zc, n
                 l = l + 1
                 m = m + n
             end do
@@ -277,17 +276,17 @@ module matall
             ma_ch = 0
 
             ! Second run: read cell indices and hits
-            rewind(pr_inp)
+            rewind(pr_scr)
             l = 0
-            do while(.not. eof(pr_inp))
-                read(pr_inp, *) i, j, k, xc, yc, zc, n, dum(1:3*n + 1)
+            do while(.not. eof(pr_scr))
+                read(pr_scr, *) i, j, k, xc, yc, zc, n, dum(1:3*n + 1)
                 l = l + 1
                 ma_3(i, j, k) = l
                 ma_i(l) = n + ma_i(l - 1)
                 ma_ci(ma_i(l-1)+1: ma_i(l)) = dum(2:3*n+1:3)
                 ma_ch(ma_i(l-1)+1: ma_i(l)) = dum(3:3*n+1:3)
             end do
-            close(pr_inp)
+            close(pr_scr)
             return
         end subroutine p_read_matall
 

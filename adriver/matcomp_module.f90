@@ -1,7 +1,7 @@
 ! Module to represent material compositions
 module matcomp  
+    use r2senv
     use proc
-    use gen, only: print_log
     implicit none
     integer, allocatable:: &
       mc_zaid(:),  & ! ZAIDs for all materials
@@ -32,16 +32,17 @@ module matcomp
     public:: get_mat, get_zaid, get_frac, write_mat_fispact
 
     contains
-        subroutine get_mat(fname)
-            ! Populate arrasy for all processes
+        subroutine get_mat()
+            ! Populate arrays for all processes
             implicit none
-            character (len=*), intent(in):: fname
+
 
             if (pr_id .eq. 0) then
-                call print_log('Reading FIS table from ' // fname // ' ... ')
-                call p_read_mat(fname)
-                call print_log('Reading natural.txt')
-                call p_read_na
+                call print_log('Reading ' // r2s_matcomposition // ' ... ')
+                call p_read_mat(r2s_matcomposition)
+
+                call print_log('Reading ' // r2s_natab // ' ... ')
+                call p_read_na(r2s_natab)
             end if
 
             call broadcast_1i(mc_i, 0)
@@ -136,21 +137,21 @@ module matcomp
             integer:: n, i, j, mi, mn, nn, istart
             character (len=6):: nam
 
-            open(pr_inp, file=fname)
+            open(pr_scr, file=fname)
 
             ! First run through the file: get number of zaids and fractions to store
-            read(pr_inp, *)
-            read(pr_inp, *) n  ! number of materials
+            read(pr_scr, *)
+            read(pr_scr, *) n  ! number of materials
             allocate(mc_i(0: n))
             mc_i = 0
             do i = 1, n
-                read(pr_inp, *), nam, &  ! Dummy string
+                read(pr_scr, *), nam, &  ! Dummy string
                                  mi,  &  ! Material index
                                  mn,  &  ! Material name
                                  nn      ! number of entries
                 mc_i(mi) = nn
                 do j = 1, nn
-                    read(pr_inp, *)
+                    read(pr_scr, *)
                 end do
             end do
 
@@ -163,19 +164,19 @@ module matcomp
             allocate(mc_frac(mc_i(n)))
 
             ! Second run: read all zaids and fractions
-            rewind(pr_inp)
-            read(pr_inp, *)
-            read(pr_inp, *)
+            rewind(pr_scr)
+            read(pr_scr, *)
+            read(pr_scr, *)
             do i = 1, n
-                read(pr_inp, *) nam, mi, mn, nn
+                read(pr_scr, *) nam, mi, mn, nn
                 istart = mc_i(mi-1)
                 do j = 1, nn
-                    read(pr_inp, *), mc_zaid(istart + j),  &  ! ZAID
+                    read(pr_scr, *), mc_zaid(istart + j),  &  ! ZAID
                                      nam,                  &  ! dummy string
                                      mc_frac(istart + j)      ! fraction
                 end do
             end do
-            close(pr_inp)
+            close(pr_scr)
             return
         end subroutine p_read_mat 
 
@@ -188,19 +189,20 @@ module matcomp
             return
         end subroutine split_za
 
-        subroutine p_read_na
+        subroutine p_read_na(fname)
             implicit none
+            character (len=*), intent(in):: fname
             integer:: i, na, nz, ios, za, z, a
             integer:: i1, i2
             real:: f
             ! read natural.txt
-            open(pr_inp, file='natural.txt')
+            open(pr_scr, file=fname)
 
             ! First run: get dimensions
             na = 0  ! number of entries in the files
             nz = 0  ! maximal Z
-            do while (.not. eof(pr_inp))
-                read(pr_inp, *, iostat=ios) za, f
+            do while (.not. eof(pr_scr))
+                read(pr_scr, *, iostat=ios) za, f
                 if (ios .eq. 0) then 
                     na = na + 1
                     call split_za(za, z, a)
@@ -215,11 +217,11 @@ module matcomp
             na_f = 0.0
 
             ! Second run: get dimensions for every Z
-            rewind(pr_inp)
+            rewind(pr_scr)
             na = 0  ! number of isotopes for current Z
             nz = 0  ! current Z
-            do while (.not. eof(pr_inp))
-                read(pr_inp, *, iostat=ios), za, f
+            do while (.not. eof(pr_scr))
+                read(pr_scr, *, iostat=ios), za, f
                 if (ios .eq. 0) then
                     call split_za(za, z, a)
                     na_i(z) = na_i(z) + 1
@@ -231,9 +233,9 @@ module matcomp
             end do
 
             ! Third run: read data into arrays
-            rewind(pr_inp)
-            do while (.not. eof(pr_inp))
-                read(pr_inp, *, iostat=ios), za, f
+            rewind(pr_scr)
+            do while (.not. eof(pr_scr))
+                read(pr_scr, *, iostat=ios), za, f
                 if (ios .eq. 0) then
                     call split_za(za, z, a)
                     i1 = na_i(z - 1) + 1
@@ -243,7 +245,7 @@ module matcomp
                     na_f(i1 + na) = f
                 end if
             end do
-            close(pr_inp)
+            close(pr_scr)
         end subroutine p_read_na
 
         subroutine p_write_nat_log

@@ -1,44 +1,81 @@
 ! Module containing geenral functions
 module gen
-    ! Type to store material composition
-    use proc, only: pr_log, pr_inp, pr_out 
 
     implicit none
 
-
     private
-    public:: getts, get_line, &
-             read_line, print_log, ijk2str, to_lower
+    public:: getts, get_line, get_file_name, i2str, ijk2str, &
+             read_line, to_lower, str2int
 
     contains
 
-        function ijk2str(p, i, delimiter) result(s)
-            character (len=*), intent(in):: p
-            integer, intent(in):: i(:)
+        function get_file_name(prefix, base, delimiter, indices) result(fname)
+            ! Compose file name from prefix, basename and indices
+            character (len=*), intent(in):: prefix
+            character (len=*), intent(in):: base
             character (len=*), optional:: delimiter
+            integer, optional:: indices(:)
+            character (len=:), allocatable:: fname
+
+            character (len=:), allocatable:: dlm, sfx
+
+            if (present(delimiter)) then
+                dlm = delimiter
+            else
+                dlm = ""
+            end if
+            if (present(indices)) then
+                sfx = ijk2str(trim(base), dlm, indices)
+            else
+                sfx = trim(base)
+            end if
+            fname = prefix // sfx
+            return
+        end function get_file_name
+
+        function str2int(s) result(res)
+            ! Convert string to a sum of its ASCII
+            character (len=*), intent(in):: s
+            integer:: res
+
+            ! local
+            integer:: n, i
+            n = len(s)
+            res = 0
+            do i = 1, n
+                res = res + 32*ichar(s(i:i))
+            end do
+            return
+        end function str2int
+
+        function ijk2str(prefix, delimiter, iarray) result(s)
+            character (len=*), intent(in):: prefix
+            character (len=*), intent(in):: delimiter
+            integer, intent(in):: iarray(:)
             character (len=:), allocatable:: s
 
-            character (len=120):: d
-            integer:: ll, n
-            n = size(i)
-            write(d, '(a, <n>("_", i0))') p, i
-            ll = len(trim(d))
-            allocate(character (len=ll):: s)
-            s(:) = trim(d)
-            return
+            ! local vars
+            integer:: n, i
+            character (len=600):: cind  ! string representation of indices
+
+            n = size(iarray)
+            write(cind, '(<n>(a, i0))') (delimiter, iarray(i), i = 1, n)
+            s = prefix // trim(cind)
+            return 
         end function ijk2str
 
-        subroutine print_log(message)
-            character (len=*), intent(in):: message
+        function i2str(i) result(s)
+            integer, intent(in):: i
+            character (len=:), allocatable:: s
+
             ! local vars
-            character (len=19):: ts
-            integer:: n
-            ts = getts()
-            n = len(message) + 1
-            write(pr_log, '(a11, a20, a<n>)') '==========', ts, message
-            return
-        end subroutine print_log
-        
+            character (len=50):: cind  ! string representation of i
+
+            write(cind, '(i0)') i
+            s = trim(cind)
+            return 
+        end function i2str
+
         function getts() result(ts)
             character ts*19
             integer d(8)

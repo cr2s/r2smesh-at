@@ -1,7 +1,8 @@
 ! Module to read meshtal.
 module meshtal
+    use r2senv
     use proc
-    use gen, only: get_line, read_line, print_log
+    use gen, only: get_line, read_line
 
     real, allocatable:: xf(:), yf(:), zf(:), ef(:), vf(:, :, :, :, :), & ! fine mesh
                         xc(:), yc(:), zc(:), ec(:), vc(:, :, :, :, :)    ! coarse mesh
@@ -13,30 +14,30 @@ module meshtal
 
     contains
         subroutine get_fluxes
-            ! Populate meshtally arrays for flxu intensity and spectra
+            ! Populate meshtally arrays for flux intensity and spectra
             if (pr_id .eq. 0) then
-                call print_log('Read meshtal.fine ... ')
-                open(pr_inp, file='meshtal.fine')
-                call get_next_tally(pr_inp, nf, xf, yf, zf, ef, vf)
-                close(pr_inp)
+                call print_log('Read ' // r2s_neutronintensity // ' ... ')
+                open(pr_scr, file=r2s_neutronintensity)
+                call get_next_tally(pr_scr, nf, xf, yf, zf, ef, vf)
+                close(pr_scr)
 
                 ! Read neutron flux spectra
-                call print_log('Read meshtal.coarse ... ')
-                open(pr_inp, file='meshtal.coarse')
-                call get_next_tally(pr_inp, nc, xc, yc, zc, ec, vc)
-                close(pr_inp)
+                call print_log('Read ' // r2s_neutronspectra // ' ... ')
+                open(pr_scr, file=r2s_neutronspectra)
+                call get_next_tally(pr_scr, nc, xc, yc, zc, ec, vc)
+                close(pr_scr)
 
                 ! Write header for DGS files
-                call print_log('Writing header for dgs files to fine_mesh_def ... ')
-                open(pr_out, file='fine_mesh_def')
-                write(pr_out, '(3i6)') size(xf), size(yf), size(zf)
+                call print_log('Writing ' // r2s_out // '/dgs.header ... ')
+                open(pr_scw, file= r2s_out // '/dgs.header')
+                write(pr_scw, '(3i6)') size(xf), size(yf), size(zf)
                 n = size(xf)
-                write(pr_out, '(1p<n>e15.6)') xf
+                write(pr_scw, '(1p<n>e15.6)') xf
                 n = size(yf)
-                write(pr_out, '(1p<n>e15.6)') yf
+                write(pr_scw, '(1p<n>e15.6)') yf
                 n = size(zf)
-                write(pr_out, '(1p<n>e15.6)') zf
-                close(pr_out)
+                write(pr_scw, '(1p<n>e15.6)') zf
+                close(pr_scw)
             end if
             ! Broadcast read data to all processes
             call mpi_bcast(nf, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, pr_er)

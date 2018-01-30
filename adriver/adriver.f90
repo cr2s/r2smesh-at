@@ -1,7 +1,7 @@
 program adriver
     use proc  ! mpi module is available from here
     use matcomp, only: get_mat
-    use gen, only: print_log, ijk2str
+    use gen, only: i2str
     use meshtal
     use matall
     use fispactdriver, only: run_condense, run_collapse_clean, run_inventory2, read_tab4, write_cgi, check_cgi
@@ -14,6 +14,7 @@ program adriver
               nfcr     ! number of fispact collapse runs
 
     integer:: cmax  ! maximal number of cells in fine mesh element
+    integer:: istat
 
     ! variables for mpi
     integer, allocatable:: pstat(:)  ! Status of slave processes
@@ -27,15 +28,26 @@ program adriver
     real:: nfirtot   ! Total number of inventory runs (real to compute %)
 
     ! Get all necessary environment variables
-    call env_init
+    call env_init()
 
-
+    ! Set process-specfifc variables (MPI initialization here)
     call pr_initialize
+
+    ! Run init_1 script only once. This should prepare folder for log files
+    call pr_run1(r2s_init_1, istat, 6)  ! pr_log files are not ready. Therefore, log to std. out (unit 6)
+
+    ! Open log and cgi files
+    call pr_open_files()
+
+    ! Report environment variables to log files
+    call r2senv_report(pr_log)
+
 
     nfir = 0  ! number of inventory runs
 
-    ! Initialization
+    ! Initialization: reading of input data, running condense
     call initialize()
+
     ! Compute number of inventory runs
     call print_log('Computing number of inventory runs ...')
     do i_c = 1, size(xc) - 1
@@ -48,14 +60,14 @@ program adriver
         end do
     end do
     nfirtot = float(nfir) * 1e-2
-    call print_log(ijk2str('Number of collapse/inventory runs:', (/nfcr, nfir/)))
+    call print_log('Number of collapse  runs: ' // i2str(nfcr))
+    call print_log('Number of inventory runs: ' // i2str(nfir))
 
     nfir = 0  ! number of inventory runs
     nfcr = 0  ! Number of collapse runs (at most once per coarse element)
 
     if (pr_np .eq. 1) then 
         ! Only one process, do sequentially
-        call run_condense()
         do i_c = 1, size(xc) - 1
             do j_c = 1, size(yc) - 1
                 do k_c = 1, size(zc) - 1 
@@ -71,7 +83,6 @@ program adriver
     else
         if (pr_id .eq. 0) then
             ! Code for master
-            call run_condense()
             call MPI_Barrier(MPI_COMM_WORLD, pr_er)
             allocate(pstat(pr_np - 1))
             pstat = 0
@@ -139,18 +150,26 @@ program adriver
         integer:: nf, nc  ! meshtal numbers for the fine and coarse meshes
         integer, allocatable:: mn(:)  ! material names
 
-        integer:: n
+        integer:: n, istat
 
         ! Read material compositions
-        call get_mat('mat_table')
+        call get_mat()
 
-        call get_fluxes
+        ! Read flux intensities and spectra
+        call get_fluxes()
 
-        call get_mcnp_names('cmi_table')
-        call get_mat_allocation('fine_mesh_content')
+        ! Read cell and material indices and names, and material allocation
+        call get_mcnp_names()
+        call get_mat_allocation()
+
+        ! Run condense
+        call pr_run1(r2s_condense_s1, istat)
+
+        ! Run node init script
+        call pr_runn(r2s_init_n // " " // i2str(pr_id), istat)
 
         ! Loop for fispact runs. 
-        call print_log('Loop over coarse mesh elements ... ')
+        call print_log('Initialization completed.')
         nfir = 0  
         nfcr = 0  
         return
@@ -178,7 +197,7 @@ program adriver
 
         ! Write log
         if (.not. dryrun) then 
-            write(msg, '("Starting coarse element ", 3i5, ". Completed fispact inventory runs: ", i6, f9.4" %")') ic, jc, kc, nfr, float(nfr)/nfirtot
+            write(msg, '("Starting coarse element ", 3i5, ". Completed fispact inventory runs: ", i8, f9.4" %")') ic, jc, kc, nfr, float(nfr)/nfirtot
             call print_log(trim(msg))
         end if
 

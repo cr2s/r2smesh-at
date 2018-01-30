@@ -1,0 +1,19 @@
+<< Calculation of inventories, with libraries generated >>
+<< at the collapse and condense stages                  >>
+
+CLOBBER
+
+MONITOR 1 << Echo keywords to output>>
+
+<< Read collapsed and condensed data >>
+GETXS 0
+GETDECAY 0
+FISPACT
+* Inventory calculations for XXX 
+
+<< Turn on generation of separate files >>
+<< TAB1 10   material compositions >>
+<< TAB2 10   activity in Bq and Sv/h >>
+TAB4 10   << decay gamma spectra >>
+
+<< Material definition >>
