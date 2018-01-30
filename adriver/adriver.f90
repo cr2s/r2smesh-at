@@ -166,7 +166,7 @@ program adriver
         call pr_run1(r2s_condense_s1, istat)
 
         ! Run node init script
-        call pr_runn(r2s_init_n // " " // i2str(pr_id), istat)
+        call pr_runn(r2s_init_n // " " // i2str(pr_id) // " " // pr_nname, istat)
 
         ! Loop for fispact runs. 
         call print_log('Initialization completed.')

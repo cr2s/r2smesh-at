@@ -5,7 +5,7 @@
 # It should be started with the node identifier (node name, node number,
 # process number etc.) passed as the 1-st command line argument.
 
-n=$1
+n=$1.$2
 
 # Recreate scratch folders, where each process will make IO
 rm -rf $R2s_scratch/r2s_w   > init_n.$n.log

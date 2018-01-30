@@ -21,6 +21,8 @@ module proc
 
     integer:: pr_st(MPI_STATUS_SIZE)
 
+    character (len=:), allocatable:: pr_nname  ! Node name
+
     public
 
     contains
@@ -105,20 +107,11 @@ module proc
         subroutine pr_initialize
             integer:: pnamelen, ipname
             character*(MPI_MAX_PROCESSOR_NAME):: pname_tmp
-            character (len=:), allocatable:: pname
             integer:: c
 
             call mpi_init(pr_er)
             call mpi_comm_size(MPI_COMM_WORLD, pr_np, pr_er)
             call mpi_comm_rank(MPI_COMM_WORLD, pr_id, pr_er)
-
-            ! to split by nodes
-            call mpi_get_processor_name(pname_tmp, pnamelen, pr_er)
-            pname = trim(pname_tmp)
-            ipname = str2int(pname)
-
-            call mpi_comm_split(MPI_COMM_WORLD, ipname, pr_id, pr_nodecomm, pr_er) 
-            call mpi_comm_rank(pr_nodecomm, pr_nid, pr_er)
 
             select case (pr_np)
             case (1:99)    
@@ -136,6 +129,18 @@ module proc
             ! Scratch files should be opened and closed in subroutines where they are used
             pr_scw = 3 * c + pr_id 
             pr_scr = 4 * c + pr_id 
+
+
+            ! to split by nodes
+            call mpi_get_processor_name(pname_tmp, pnamelen, pr_er)
+            pr_nname = trim(pname_tmp)
+            ipname = str2int(pr_nname)
+
+            call mpi_barrier(MPI_COMM_WORLD, pr_er)
+            call mpi_comm_split(MPI_COMM_WORLD, ipname, pr_id, pr_nodecomm, pr_er) 
+            call mpi_comm_rank(pr_nodecomm, pr_nid, pr_er)
+            call mpi_barrier(MPI_COMM_WORLD, pr_er)
+            write(*, *) pr_id, pr_nname, ipname, pr_nid, pr_nodecomm
         end subroutine pr_initialize
 
         subroutine pr_open_files()

@@ -33,20 +33,22 @@ module gen
             return
         end function get_file_name
 
+
         function str2int(s) result(res)
-            ! Convert string to a sum of its ASCII
+            ! taken from https://fortrandev.wordpress.com/2013/07/06/fortran-hashing-algorithm/
+            implicit none
             character (len=*), intent(in):: s
             integer:: res
 
             ! local
-            integer:: n, i
-            n = len(s)
-            res = 0
-            do i = 1, n
-                res = res + 32*ichar(s(i:i))
+            integer:: i
+            res = 5381
+            do i = 1, len(s) 
+                res = (ishft(res, 5) + res) + ichar(s(i:i))
             end do
             return
         end function str2int
+
 
         function ijk2str(prefix, delimiter, iarray) result(s)
             character (len=*), intent(in):: prefix
