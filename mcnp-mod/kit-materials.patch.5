@@ -1,25 +1,6 @@
-diff -Naur -X exclude_patterns mcnp5-orig/bin/fpp mcnp5-r2s-mat/bin/fpp
---- mcnp5-orig/bin/fpp	2014-12-01 13:34:32.000000000 +0100
-+++ mcnp5-r2s-mat/bin/fpp	2017-12-10 01:50:07.000000000 +0100
-@@ -87,11 +87,11 @@
- $verbose = 0;
- #
- # MCNP6 defaults:  -nomacros  -blanks
--    $macro_substitute = 0;
--    $blanks  = 1;
-+#   $macro_substitute = 0;
-+#   $blanks  = 1;
- # MCNP5 defaults:  -macros  -noblanks
--#   $macro_substitute = 1;
--#   $blanks  = 0;
-+    $macro_substitute = 1;
-+    $blanks  = 0;
- #
- ##### get args
- #
-diff -Naur -X exclude_patterns mcnp5-orig/Source/src/FILE.list mcnp5-r2s-mat/Source/src/FILE.list
---- mcnp5-orig/Source/src/FILE.list	2014-12-01 13:34:32.000000000 +0100
-+++ mcnp5-r2s-mat/Source/src/FILE.list	2018-01-17 10:06:41.000000000 +0100
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/FILE.list mcnp5-r2s-at-mat/Source/src/FILE.list
+--- mcnp5-orig/Source/src/FILE.list	2015-09-28 14:02:58.000000000 +0200
++++ mcnp5-r2s-at-mat/Source/src/FILE.list	2018-01-17 12:23:38.640546000 +0100
 @@ -18,6 +18,7 @@
  echkcl.F90   electr.F90   electron_history.F90      emaker.F90   ephcom.F90   \
  eqpbbn.F90   erf2.F90     ergimp.F90   erprnt.F90   errprn.F90   escat.F90    eventp.F90   \
@@ -28,9 +9,9 @@ diff -Naur -X exclude_patterns mcnp5-orig/Source/src/FILE.list mcnp5-r2s-mat/Sou
  fastdr.F90   ffetch.F90   findel.F90   findlv.F90   finpht.F90   fixcom.F90   \
  flaug_elec.F90            flaug_phot.F90            forcol.F90   fshort.F90   \
  getexm.F90   getidt.F90   getpar.F90   getxs.F90    getxst.F90   ginst.F90    \
-diff -Naur -X exclude_patterns mcnp5-orig/Source/src/findcells.F90 mcnp5-r2s-mat/Source/src/findcells.F90
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/findcells.F90 mcnp5-r2s-at-mat/Source/src/findcells.F90
 --- mcnp5-orig/Source/src/findcells.F90	1970-01-01 01:00:00.000000000 +0100
-+++ mcnp5-r2s-mat/Source/src/findcells.F90	2017-12-19 11:38:25.000000000 +0100
++++ mcnp5-r2s-at-mat/Source/src/findcells.F90	2018-01-17 12:23:38.641960000 +0100
 @@ -0,0 +1,120 @@
 +subroutine findcells(iptc,xmin,xmax,ymin,ymax,zmin,zmax,kcells, istt)
 +    ! PP (rmc_mod.F90 => rmcsor)
@@ -152,9 +133,9 @@ diff -Naur -X exclude_patterns mcnp5-orig/Source/src/findcells.F90 mcnp5-r2s-mat
 +       
 +    return
 +end subroutine findcells
-diff -Naur -X exclude_patterns mcnp5-orig/Source/src/fispact_mod.F90 mcnp5-r2s-mat/Source/src/fispact_mod.F90
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/fispact_mod.F90 mcnp5-r2s-at-mat/Source/src/fispact_mod.F90
 --- mcnp5-orig/Source/src/fispact_mod.F90	1970-01-01 01:00:00.000000000 +0100
-+++ mcnp5-r2s-mat/Source/src/fispact_mod.F90	2017-12-15 22:48:35.000000000 +0100
++++ mcnp5-r2s-at-mat/Source/src/fispact_mod.F90	2018-01-17 12:23:38.643175000 +0100
 @@ -0,0 +1,39 @@
 +! FISPACT module.
 +! Provides data for writing material composition in format suitable for
@@ -195,10 +176,10 @@ diff -Naur -X exclude_patterns mcnp5-orig/Source/src/fispact_mod.F90 mcnp5-r2s-m
 +
 +
 +end module      
-diff -Naur -X exclude_patterns mcnp5-orig/Source/src/msgtsk.F90 mcnp5-r2s-mat/Source/src/msgtsk.F90
---- mcnp5-orig/Source/src/msgtsk.F90	2014-12-01 13:34:32.000000000 +0100
-+++ mcnp5-r2s-mat/Source/src/msgtsk.F90	2018-01-16 21:15:07.000000000 +0100
-@@ -1,602 +1,708 @@
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/msgtsk.F90 mcnp5-r2s-at-mat/Source/src/msgtsk.F90
+--- mcnp5-orig/Source/src/msgtsk.F90	2015-09-28 14:02:58.000000000 +0200
++++ mcnp5-r2s-at-mat/Source/src/msgtsk.F90	2018-01-17 16:27:24.006561613 +0100
+@@ -1,602 +1,706 @@
 -!+ $Id: msgtsk.F90,v 1.22.2.1 2010/09/20 19:48:23 fbrown Exp $
 -! Copyright LANS/LANL/DOE - see file COPYRIGHT_INFO
 -
@@ -1444,10 +1425,8 @@ diff -Naur -X exclude_patterns mcnp5-orig/Source/src/msgtsk.F90 mcnp5-r2s-mat/So
 +        write(*, *) 'Mesh size:', fm(fmi)%nxrb - 1, fm(fmi)%nyzb - 1, fm(fmi)%nztb - 1
 +    end if
 +    do i_p = 1, fm(fmi)%nxrb - 1
-+        if (mynum .eq. 1) then
-+            call getidt(hd)
-+            write(*, *) hd, '  Task', mynum, ' starts i = ', i_p 
-+        end if
++        call getidt(hd)
++        write(*, *) hd, '  Task', mynum, ' starts i = ', i_p 
 +        do j_p = 1, fm(fmi)%nyzb - 1
 +            do k_p = 1, fm(fmi)%nztb - 1
 +            m_p = m_p + 1
@@ -1509,9 +1488,9 @@ diff -Naur -X exclude_patterns mcnp5-orig/Source/src/msgtsk.F90 mcnp5-r2s-mat/So
 +  call dm_term
 +  stop
 +end subroutine msgtsk
-diff -Naur -X exclude_patterns mcnp5-orig/Source/src/sumary.F90 mcnp5-r2s-mat/Source/src/sumary.F90
---- mcnp5-orig/Source/src/sumary.F90	2014-12-01 13:34:32.000000000 +0100
-+++ mcnp5-r2s-mat/Source/src/sumary.F90	2018-01-17 11:26:16.000000000 +0100
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/sumary.F90 mcnp5-r2s-at-mat/Source/src/sumary.F90
+--- mcnp5-orig/Source/src/sumary.F90	2015-09-28 14:03:00.000000000 +0200
++++ mcnp5-r2s-at-mat/Source/src/sumary.F90	2018-01-17 12:23:38.647288000 +0100
 @@ -362,15 +362,22 @@
      call kprint
    endif
@@ -1537,9 +1516,9 @@ diff -Naur -X exclude_patterns mcnp5-orig/Source/src/sumary.F90 mcnp5-r2s-mat/So
  
    ! Generate weight-window cards at the end of the run.
    if( iwwg>0 .and. (nst/=0 .or. npp<0_i8knd) ) then
-diff -Naur -X exclude_patterns mcnp5-orig/Source/src/tblCMI.F90 mcnp5-r2s-mat/Source/src/tblCMI.F90
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/tblCMI.F90 mcnp5-r2s-at-mat/Source/src/tblCMI.F90
 --- mcnp5-orig/Source/src/tblCMI.F90	1970-01-01 01:00:00.000000000 +0100
-+++ mcnp5-r2s-mat/Source/src/tblCMI.F90	2018-01-17 10:33:25.000000000 +0100
++++ mcnp5-r2s-at-mat/Source/src/tblCMI.F90	2018-01-17 12:23:38.648598000 +0100
 @@ -0,0 +1,76 @@
 +! Subroutine to print out cell and material indices and numbers.
 +subroutine tblCMI
@@ -1617,9 +1596,9 @@ diff -Naur -X exclude_patterns mcnp5-orig/Source/src/tblCMI.F90 mcnp5-r2s-mat/So
 +    write(iuo, '(" end of print table FIS")')
 +
 +end subroutine tblFIS      
-diff -Naur -X exclude_patterns mcnp5-orig/Source/src/torus.F90 mcnp5-r2s-mat/Source/src/torus.F90
---- mcnp5-orig/Source/src/torus.F90	2014-12-01 13:34:32.000000000 +0100
-+++ mcnp5-r2s-mat/Source/src/torus.F90	2017-12-10 01:50:06.000000000 +0100
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/torus.F90 mcnp5-r2s-at-mat/Source/src/torus.F90
+--- mcnp5-orig/Source/src/torus.F90	2015-09-28 14:03:01.000000000 +0200
++++ mcnp5-r2s-at-mat/Source/src/torus.F90	2018-01-17 12:23:38.650047000 +0100
 @@ -65,7 +65,16 @@
        if( t3==0. )  exit
        t3 = (uu(5)+xx(m)*(uu(4)+xx(m)*(uu(3)+xx(m)*(uu(2)+xx(m)))))/t3
