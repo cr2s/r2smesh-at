@@ -100,7 +100,8 @@ module fispactdriver
                 do j = j1, j2
                 do k = k1, k2
                     if (sum(cgi(i, j, k, :, l)) .gt. 0.0) then 
-                        write(pr_scw,   '(4i10, 1p<ne>e11.4)') l, i, j, k, (cgi(i, j, k, m, l), m = 1, ne)
+                        write(pr_scw,   '(i6, 3i5, 1p<ne>e11.4)') l, i, j, k, (cgi(i, j, k, m, l), m = 1, ne)
+                        ! TODO reshape cgi and fgi arrays so that here contiguous part of array is printed out.
                     end if
                 end do
                 end do
