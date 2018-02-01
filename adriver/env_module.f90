@@ -35,45 +35,45 @@ module r2senv
         subroutine env_init()
             ! Prepare all necessary variables, so that they are 
             ! available in the other modules
-            r2s_natab              = get_var('R2s_natab',            ':undefined:')
-            r2s_condense_s1        = get_var('R2s_condense_s1',      ':undefined:')
-            r2s_condense_s2        = get_var('R2s_condense_s2',      ':undefined:')
-            r2s_collapse_s1        = get_var('R2s_collapse_s1',      ':undefined:')
-            r2s_collapse_s2        = get_var('R2s_collapse_s2',      ':undefined:')
-            r2s_inventory_s1       = get_var('R2s_inventory_s1',     ':undefined:')
-            r2s_inventory_s2       = get_var('R2s_inventory_s2',     ':undefined:')
-            r2s_matallocation      = get_var('R2s_matallocation',    ':undefined:')
-            r2s_neutronintensity   = get_var('R2s_neutronintensity', ':undefined:')
-            r2s_neutronspectra     = get_var('R2s_neutronspectra',   ':undefined:')
-            r2s_matcomposition     = get_var('R2s_matcomposition',   ':undefined:')
-            r2s_cellsmaterials     = get_var('R2s_cellsmaterials',   ':undefined:')
-            r2s_cgiheader          = get_var('R2s_cgiheader',        ':undefined:')
-            r2s_scratch            = get_var('R2s_scratch',          ':undefined:')
-            r2s_out                = get_var('R2s_out',              ':undefined:')
-            r2s_init_1             = get_var('R2s_init_1',           ':undefined:')
-            r2s_init_n             = get_var('R2s_init_n',           ':undefined:')
-            r2s_finalize_1         = get_var('R2s_finalize_1',       ':undefined:')
-            r2s_finalize_n         = get_var('R2s_finalize_n',       ':undefined:')
-            r2s_log                = get_var('R2s_log',              ':undefined:')
+            r2s_natab              = get_var('r2s_natab',            ':undefined:')
+            r2s_condense_s1        = get_var('r2s_condense_s1',      ':undefined:')
+            r2s_condense_s2        = get_var('r2s_condense_s2',      ':undefined:')
+            r2s_collapse_s1        = get_var('r2s_collapse_s1',      ':undefined:')
+            r2s_collapse_s2        = get_var('r2s_collapse_s2',      ':undefined:')
+            r2s_inventory_s1       = get_var('r2s_inventory_s1',     ':undefined:')
+            r2s_inventory_s2       = get_var('r2s_inventory_s2',     ':undefined:')
+            r2s_matallocation      = get_var('r2s_matallocation',    ':undefined:')
+            r2s_neutronintensity   = get_var('r2s_neutronintensity', ':undefined:')
+            r2s_neutronspectra     = get_var('r2s_neutronspectra',   ':undefined:')
+            r2s_matcomposition     = get_var('r2s_matcomposition',   ':undefined:')
+            r2s_cellsmaterials     = get_var('r2s_cellsmaterials',   ':undefined:')
+            r2s_cgiheader          = get_var('r2s_cgiheader',        ':undefined:')
+            r2s_scratch            = get_var('r2s_scratch',          ':undefined:')
+            r2s_out                = get_var('r2s_out',              ':undefined:')
+            r2s_init_1             = get_var('r2s_init_1',           ':undefined:')
+            r2s_init_n             = get_var('r2s_init_n',           ':undefined:')
+            r2s_finalize_1         = get_var('r2s_finalize_1',       ':undefined:')
+            r2s_finalize_n         = get_var('r2s_finalize_n',       ':undefined:')
+            r2s_log                = get_var('r2s_log',              ':undefined:')
             ! TODO: put here file existence checks
             return
         end subroutine env_init
 
         subroutine r2senv_report(n)
             ! Print out all environment variables to unit n
-            write(n, 100) 'R2s_natab',              r2s_natab
-            write(n, 100) 'R2s_condense_s1',        r2s_condense_s1
-            write(n, 100) 'R2s_condense_s2',        r2s_condense_s2
-            write(n, 100) 'R2s_collapse_s1',        r2s_collapse_s1
-            write(n, 100) 'R2s_collapse_s2',        r2s_collapse_s2
-            write(n, 100) 'R2s_inventory_s1',       r2s_inventory_s1
-            write(n, 100) 'R2s_inventory_s2',       r2s_inventory_s2
-            write(n, 100) 'R2s_matallocation',      r2s_matallocation
-            write(n, 100) 'R2s_neutronintensity',   r2s_neutronintensity
-            write(n, 100) 'R2s_neutronspectra',     r2s_neutronspectra
-            write(n, 100) 'R2s_matcomposition',     r2s_matcomposition
-            write(n, 100) 'R2s_cellsmaterials',     r2s_cellsmaterials
-            write(n, 100) 'R2s_cgiheader',          r2s_cgiheader
+            write(n, 100) 'r2s_natab',              r2s_natab
+            write(n, 100) 'r2s_condense_s1',        r2s_condense_s1
+            write(n, 100) 'r2s_condense_s2',        r2s_condense_s2
+            write(n, 100) 'r2s_collapse_s1',        r2s_collapse_s1
+            write(n, 100) 'r2s_collapse_s2',        r2s_collapse_s2
+            write(n, 100) 'r2s_inventory_s1',       r2s_inventory_s1
+            write(n, 100) 'r2s_inventory_s2',       r2s_inventory_s2
+            write(n, 100) 'r2s_matallocation',      r2s_matallocation
+            write(n, 100) 'r2s_neutronintensity',   r2s_neutronintensity
+            write(n, 100) 'r2s_neutronspectra',     r2s_neutronspectra
+            write(n, 100) 'r2s_matcomposition',     r2s_matcomposition
+            write(n, 100) 'r2s_cellsmaterials',     r2s_cellsmaterials
+            write(n, 100) 'r2s_cgiheader',          r2s_cgiheader
             write(n, 100) 'r2s_scratch',            r2s_scratch
             write(n, 100) 'r2s_out',                r2s_out
             write(n, 100) 'r2s_init_1',             r2s_init_1

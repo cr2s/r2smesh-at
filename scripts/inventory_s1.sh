@@ -3,10 +3,10 @@
 # Script creates folder for inventory fispact run.
 # Input file is constructed by the driver.
 
-wdr="$R2s_scratch"/r2s_i/$1/$2/$3        # Inventory working folder
-cld="$R2s_scratch"/r2s_c/$4/$5/$6        # Collapse working folder
-scr="$R2s_scratch"/r2s_r                 # Scratch foder, where resulting tab4 files are moved
-scw="$R2s_scratch"/r2s_w                 # Scratch foder, where parts of the inventory input are written by the driver 
+wdr="$r2s_scratch"/r2s_i/$1/$2/$3        # Inventory working folder
+cld="$r2s_scratch"/r2s_c/$4/$5/$6        # Collapse working folder
+scr="$r2s_scratch"/r2s_r                 # Scratch foder, where resulting tab4 files are moved
+scw="$r2s_scratch"/r2s_w                 # Scratch foder, where parts of the inventory input are written by the driver 
 org=$(pwd)
 
 

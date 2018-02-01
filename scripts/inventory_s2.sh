@@ -2,9 +2,9 @@
 
 # Script cleans inventory fispact run.
 
-wdr="$R2s_scratch"/r2s_i/$1/$2/$3        # Inventory working folder
-scr="$R2s_scratch"/r2s_r                 # Scratch foder, where resulting tab4 files are moved
-scw="$R2s_scratch"/r2s_w                 # Scratch foder, where parts of the inventory input are written by the driver 
+wdr="$r2s_scratch"/r2s_i/$1/$2/$3        # Inventory working folder
+scr="$r2s_scratch"/r2s_r                 # Scratch foder, where resulting tab4 files are moved
+scw="$r2s_scratch"/r2s_w                 # Scratch foder, where parts of the inventory input are written by the driver 
 
 
 rm "$scr"/tab4.$1.$2.$3
