@@ -22,8 +22,13 @@
 
 # Root folder for the r2s distribution.
 # This variable is used only in this script, as a common part of the path
-# containing executables, default scripts and input files.
-export r2s_root="$HOME/github/dev/kit-at"
+# containing executables, default scripts and input files. It is assumed that
+# the user has defined the $R2S_ROOT variable, which points to the default
+# place of r2s distribution.
+if [ ! -v r2s_root ]; then
+    # If r2s_root is not defined, set it to the original folder of this file
+    export r2s_root=$R2S_ROOT
+fi
 
 # Path to the activation driver executable
 export r2s_driver=$r2s_root/adriver/adriver.exe
