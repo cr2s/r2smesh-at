@@ -23,7 +23,7 @@ fi
 
 # Run fispact
 cd "$wdr"
-"$r2S_fispact_exe" collapse > fispact.out || exit 1
+"$r2s_fispact_exe" collapse > fispact.out || exit 1
 
 
 exit 0

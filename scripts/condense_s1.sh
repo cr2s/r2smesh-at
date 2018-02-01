@@ -10,12 +10,12 @@ if [ ! -d "$d" ]; then
 fi     
 
 if [ ! -f "$d/arrayx" ]; then
-    ln -s $r2S_condense_files "$d"/files
-    ln -s $r2S_condense_input "$d"/condense.i
-    ln -s $r2S_fispact_data   "$d"/fispact-data
+    ln -s $r2s_condense_files "$d"/files
+    ln -s $r2s_condense_input "$d"/condense.i
+    ln -s $r2s_fispact_data   "$d"/fispact-data
 
     cd "$d"
-    "$r2S_fispact_exe" condense > fispact.out
+    "$r2s_fispact_exe" condense > fispact.out
     exit
 fi
 exit

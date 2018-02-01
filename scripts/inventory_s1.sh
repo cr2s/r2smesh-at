@@ -40,7 +40,7 @@ if [ ! -f "$wdr"/inventory.tab4 ]; then
     cd "$wdr"
 
     # Execute fispact and exit if fispact exit status was non-zero
-    "$r2S_fispact_exe" inventory > fispact.out  || exit 1
+    "$r2s_fispact_exe" inventory > fispact.out  || exit 1
     cd "$org"
 fi    
 mv "$wdr"/inventory.tab4 "$scr"/tab4.$1.$2.$3
