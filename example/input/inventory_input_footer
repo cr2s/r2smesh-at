@@ -1,0 +1,37 @@
+<< Irradiation Scenario >>
+
+UNCERT 0
+SPECTRUM
+FLUX 1.056E+17
+TIME 2 YEARS SPECTRUM
+FLUX 8.139E+17
+TIME 10 YEARS SPECTRUM
+FLUX 0
+TIME 0.667 YEARS SPECTRUM
+FLUX 1.638E+18
+TIME 1.330 YEARS SPECTRUM
+PULSE 17
+    FLUX 0
+    TIME 3920 SPECTRUM
+    FLUX 1.973E+19
+    TIME 400 SPECTRUM
+ENDPULSE
+PULSE 3
+    FLUX 0
+    TIME 3920 SPECTRUM
+    FLUX 2.762E+19
+    TIME 400 SPECTRUM
+ENDPULSE
+FLUX 0
+ZERO
+TIME 0          SPECTRUM                                                                          
+TIME 1 DAYS         SPECTRUM        <<  1 day    >>                                             
+TIME 11 DAYS        SPECTRUM        << 12 days   >>                   
+TIME 18 DAYS        SPECTRUM        << 30 days   >>                      
+TIME 30 DAYS        SPECTRUM        << 60 days   >> 
+TIME 122.625 DAYS   SPECTRUM        << 0.5 years >> 
+TIME 0.5 YEARS      SPECTRUM        <<  1 year   >>                      
+TIME 1 YEARS      SPECTRUM          <<  2 year   >>
+TIME 8 YEARS      SPECTRUM          <<  10 year   >>
+END                                                                             
+* END of ITER lifetime irradiation scenario, SA2

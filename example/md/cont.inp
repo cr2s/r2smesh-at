@@ -1,0 +1,5 @@
+continue
+nps    300010    $ set above the latest dump in runtpe
+print 40         $ turn off unnecessary print tables
+idum 1000 4      $ 1000 samples per cm3, in meshtally 4
+
