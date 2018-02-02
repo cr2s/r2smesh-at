@@ -8,7 +8,7 @@ flx="$r2s_scratch"/r2s_w/fluxes.$1.$2.$3    # File with flux spectrum
 rm -rf "$wdr"
 rm -rf "$flx"
 
-mv "$r2s_scratch"/r2s_w/cgi.$1.$2.$3 "$R2s_out"
+mv "$r2s_scratch"/r2s_w/cgi.$1.$2.$3 "$r2s_out"
 
 exit 0
 
