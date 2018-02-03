@@ -13,7 +13,8 @@ if [ ! -v r2s_scratch ]; then
     . $R2S_ROOT/r2s_env.sh
 fi
 
-echo "Temporary files written to $r2s_scratch"
+tmp=$(mktemp -p $r2s_scratch -t r2s.dgs.XXXX -d)
+echo "Temporary files written to $tmp"
 
 for i in $(seq 1 9); do
     # ni -- number of files to process
@@ -23,7 +24,7 @@ for i in $(seq 1 9); do
         for n in "$@"; do
             N=$(printf "%6g" $n)
             echo -n "        for time interval $n ... "
-            grep -h "^$N " $f/cgi.${i}* > $r2s_scratch/dgs.$n.$i 
+            grep -h "^$N " $f/cgi.${i}* > $tmp/dgs.$n.$i 
             date
         done
     fi
@@ -33,9 +34,11 @@ for n in "$@"; do
     echo -n "Forming DGS file for time interval $n ... "
     # Concatenate parts to a single file and add the dgs header
     cp $f/dgs.header                                    $f/dgs.$n
-    echo $(cat $r2s_scratch/dgs.$n.[1-9] | wc -l)  >> $f/dgs.$n
-    sort -bg -k2 -k3 -k4 $r2s_scratch/dgs.$n.[1-9] >> $f/dgs.$n
+    echo $(cat $tmp/dgs.$n.[1-9] | wc -l)  >> $f/dgs.$n
+    sort -bg -k2 -k3 -k4 $tmp/dgs.$n.[1-9] >> $f/dgs.$n
     echo " written to $f/dgs.$n $(date)"
 done    
+
+rm -rf $tmp
 
 exit
