@@ -237,17 +237,22 @@ module matall
             end if
 
             write(pr_log, *) 'Material allocation:'
+            write(pr_log, *) 'i: ', 1, ni, di
+            write(pr_log, *) 'j: ', 1, nj, dj
+            write(pr_log, *) 'k: ', 1, nk, dk
             do i = 1, ni, di
                 do j = 1, nj, dj
                     do k = 1, nk, dk
                         l = ma_3(i, j, k)
+                        write(pr_log, '(4i5, \)') i, j, k, l
                         if (l .gt. 0) then
                             i1 = ma_i(l-1) + 1
                             i2 = ma_i(l)
                             n = i2 - i1 + 1
-                            write(pr_log, '(3i5, \)') i, j, k
                             write(pr_log, '(<n>i9)') ma_ci(i1: i2)
-                            write(pr_log, '(15x, <n>i9)') ma_ch(i1: i2)
+                            write(pr_log, '(20x, <n>i9)') ma_ch(i1: i2)
+                        else
+                            write(pr_log, *)
                         end if
                     end do
                 end do
@@ -291,12 +296,16 @@ module matall
             rewind(pr_scr)
             l = 0
             do while(.not. eof(pr_scr))
-                read(pr_scr, *) i, j, k, xc, yc, zc, n, dum(1:3*n + 1)
+                read(pr_scr, *) i, j, k, xc, yc, zc, n, dum(1:1 + 3*n)
                 l = l + 1
                 ma_3(i, j, k) = l
                 ma_i(l) = n + ma_i(l - 1)
                 ma_ci(ma_i(l-1)+1: ma_i(l)) = dum(2:3*n+1:3)
                 ma_ch(ma_i(l-1)+1: ma_i(l)) = dum(3:3*n+1:3)
+                ! perform file check
+                if (dum(1) .ne. sum(dum(3:3*n+1:3))) then 
+                    write(pr_log, *) 'WARNING: Total number of hits differs from sum over cells. File', fname, ' line', l
+                end if
             end do
             close(pr_scr)
             return
