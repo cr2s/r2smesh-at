@@ -7,6 +7,6 @@ A short recipe how to start can be found in the [recipe](recipe.rst).
 # Note for collaborators
 Current github policy allows only two types of access rights for private repositories, owned by a user account: (1) the owner and (2) the collaborator. Both have rights to write directly to the repository. 
 
-The proposed way of working with the repository for collaborators is to fork this repository, make chages to the forked repo and make pull requests from the forked repo to this one. In this way only accepted pull requests (i.e. reviewed code changes) will appear here.
+Instead of directly introducing changes to this repository, the proposed way for collaborators is to fork this repository, make chages to the forked repo and make pull requests from the forked repo to this one. In this way only accepted pull requests (i.e. reviewed code changes) will appear here.
 
 Contact the current [owner](anton.travleev@kit.edu) for any questions.
