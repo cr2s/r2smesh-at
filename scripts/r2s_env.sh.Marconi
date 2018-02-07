@@ -31,7 +31,7 @@ if [ ! -v r2s_root ]; then
 fi
 
 # Path to the activation driver executable
-export r2s_driver=$r2s_root/adriver/adriver.exe
+export r2s_driver=$r2s_root/bin/adriver.exe
 
 # Path to the scripts that are called by $r2s_driver. 
 # THese are  initialization and finalization scripts that are usually
