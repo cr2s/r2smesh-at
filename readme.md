@@ -9,4 +9,4 @@ Current github policy allows only two types of access rights for private reposit
 
 Instead of directly introducing changes to this repository, the proposed way for collaborators is to fork this repository, make chages to the forked repo and make pull requests from the forked repo to this one. In this way only accepted pull requests (i.e. reviewed code changes) will appear here.
 
-Contact the current [owner](anton.travleev@kit.edu) for any questions.
+Contact the owner (currently <anton.travleev@kit.edu>) for any questions.
