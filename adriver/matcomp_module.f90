@@ -13,23 +13,9 @@ module matcomp
       mc_frac(:), &   ! Fractions for all materials
       na_f(:)         ! Natural abundancies for all elements
 
-    character (len=2), dimension(112), parameter:: f_name =            & 
-         (/' H', 'He', 'Li', 'Be', ' B', ' C', ' N', ' O', ' F', 'Ne', & 
-           'Na', 'Mg', 'Al', 'Si', ' P', ' S', 'Cl', 'Ar', ' K', 'Ca', & 
-           'Sc', 'Ti', ' V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', & 
-           'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Rb', 'Sr', ' Y', 'Zr', & 
-           'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn', & 
-           'Sb', 'Te', ' I', 'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd', & 
-           'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', & 
-           'Lu', 'Hf', 'Ta', ' W', 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg', & 
-           'Tl', 'Pb', 'Bi', 'Po', 'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th', & 
-           'Pa', ' U', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm', & 
-           'Md', 'No', 'Lr', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds', & 
-           'Rg', 'Cn' /)
-
 
     private
-    public:: get_mat, get_zaid, get_frac, write_mat_fispact
+    public:: get_mat, get_zaid, get_frac, get_naa, get_naf, split_za
 
     contains
         subroutine get_mat()
@@ -68,16 +54,6 @@ module matcomp
             return
         end function get_zaid
 
-        function f_get_name(z, a) result(s)
-            ! Return FISPACT name of nuclide za
-            implicit none
-            integer, intent(in):: z, a
-            character (len=6):: s
-
-            write(s, '(a2,i3.3)') f_name(z:z), a 
-            return
-        end function f_get_name
-
         function get_frac(i) result(fa)
             ! Return array of fractions for material with index i
             implicit none
@@ -89,31 +65,29 @@ module matcomp
             return
         end function get_frac
 
-        subroutine write_mat_fispact(funit, mindex, amount, non)
-            ! Write material with index mindex to unit funit
+        function get_naa(z) result(aa)
+            ! For element z return list of A in natural composition
+            ! The order is the same as returned by get_naf.
             implicit none
-            integer, intent(in):: funit       ! file unit, should be already opened
-            integer, intent(in):: mindex      ! Material index
-            real, intent(in):: amount         ! Amount of material to be irradiated, and density
-            integer, intent(out):: non        ! Number of entries in the material
+            integer, intent(in):: z
+            integer, allocatable:: aa(:)
 
-            ! local vars
-            integer:: i, j, z, a
-            non = 0
-            do i = mc_i(mindex-1)+1, mc_i(mindex)
-                call split_za(mc_zaid(i), z, a)
-                if (a .eq. 0) then
-                    do j = na_i(z-1)+1, na_i(z)
-                        write(funit, *) f_get_name(z, na_a(j)), na_f(j) * mc_frac(i) * amount  !Total amount of material
-                        non = non + 1
-                    end do 
-                else
-                    write(funit, *) f_get_name(z, a), mc_frac(i) * amount 
-                    non = non + 1
-                end if
-            end do
+            allocate(aa(na_i(z) - na_i(z-1)))
+            aa = na_a(na_i(z-1)+1: na_i(z))
             return
-        end subroutine
+        end function get_naa
+
+        function get_naf(z) result(fa)
+            ! For element z return list of natural fractions of isotopes A.
+            ! The order is the same as returned by get_naa.
+            implicit none
+            integer, intent(in):: z
+            real, allocatable:: fa(:)
+
+            allocate(fa(na_i(z) - na_i(z-1)))
+            fa = na_f(na_i(z-1)+1: na_i(z))
+            return
+        end function get_naf
 
         subroutine p_write_mat_log
             ! Dump material compositions from all processes to log files.

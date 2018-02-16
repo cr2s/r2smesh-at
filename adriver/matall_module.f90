@@ -18,7 +18,8 @@ module matall
     real, allocatable::    &
         cden(:), ccon(:)        ! cden(i), ccon(i) -- cell density and concentration for cell with index i
 
-    public get_mat_allocation, get_mcnp_names, get_ma_adress
+    public get_mat_allocation, get_mcnp_names, get_ma_adress, get_ma_properties, &
+           get_ma_nom
 
     contains
         subroutine get_mat_allocation()
@@ -104,6 +105,19 @@ module matall
             vol = get_mesh_volume(i, j, k)
             return 
         end subroutine get_ma_properties
+
+        function get_ma_nom(i, j, k) result(nom)
+            ! return number of materials in the fine mesh element i, j, k
+            implicit none
+            integer, intent(in):: i, j, k
+            integer:: nom
+
+            ! local vars
+            integer:: i1, i2
+            call get_ma_adress(i, j, k, i1, i2)
+            nom = count(cmat(ma_ci(i1: i2)) .gt. 0)
+            return 
+        end function get_ma_nom
 
         subroutine p_read_cmi(fname)
             ! Read information from the print table CMI
@@ -244,13 +258,13 @@ module matall
                 do j = 1, nj, dj
                     do k = 1, nk, dk
                         l = ma_3(i, j, k)
-                        write(pr_log, '(4i5, \)') i, j, k, l
+                        write(pr_log, '(3i5, i8, \)') i, j, k, l
                         if (l .gt. 0) then
                             i1 = ma_i(l-1) + 1
                             i2 = ma_i(l)
                             n = i2 - i1 + 1
                             write(pr_log, '(<n>i9)') ma_ci(i1: i2)
-                            write(pr_log, '(20x, <n>i9)') ma_ch(i1: i2)
+                            write(pr_log, '(23x, <n>i9)') ma_ch(i1: i2)
                         else
                             write(pr_log, *)
                         end if
