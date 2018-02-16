@@ -68,3 +68,12 @@ The source particle weight ``W_i`` is obtained by inserting (5) and (6) to (3)::
                  =  N sum(S_gi, g=1..G)
                  
                  
+Comparison
+------------
+The original implementation might appear more effective. Consider a mesh element with small material volumetric fraction. In the original implementation, when the chosen coordinate does not hit material, another element (probably with larger material volumetric fraction and thus more probability to be accepted) is sampled. In the new implementation, a new coordinate is sampled in the same mesh element until material is hit.
+
+For proper weight normalization, the original implementation needs additional information about the material volumetric fractions. It is supplied implicitly, while the decay gamma source file contains gamma intensity normalized to material volume. More straightforward way is used in the new implementation, where the values in the decay gamma source file are total intensities in each mesh element and can be directly used to e.g. compute the total gamma intensity (simple sum of all entries) in the region covered by the mesh.
+
+Drawbacks
+-----------
+Rejection of decay gamma source coordinates in void cells can be insufficient in some configurations. Consider a steel pipe filled with water. Steel is highly activated as compared to water. In this configuration, gammas will be emmitted both from the pipe walls (as it should be) and from water (since this is not void region). The latter is wrong (decay gamma is originated from steel, not from water) and can affect local distribution of decay heat and SDDR.
