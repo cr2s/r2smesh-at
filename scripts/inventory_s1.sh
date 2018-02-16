@@ -30,7 +30,6 @@ if [ ! -d "$wdr" ]; then
 
     # Concatenate parts of the input file
     cat "$scr"/header     \
-        "$scw"/mat.title.$1.$2.$3 \
         "$scw"/mat.content.$1.$2.$3 \
         "$scw"/scenario.$1.$2.$3 > "$wdr"/inventory.i
 fi
@@ -43,7 +42,7 @@ if [ ! -f "$wdr"/inventory.tab4 ]; then
     "$r2s_fispact_exe" inventory > fispact.out  || exit 1
     cd "$org"
 fi    
-mv "$wdr"/inventory.tab4 "$scr"/tab4.$1.$2.$3
+ln -s "$wdr"/inventory.tab4 "$scr"/tab4.$1.$2.$3
 
 
 exit 0

@@ -8,11 +8,35 @@ module fispactdriver
     use meshtal, only: vf, vc
     use gen, only: to_lower, read_line, get_line, get_file_name
    
+    character (len=2), dimension(112), parameter:: f_name =            & 
+         (/' H', 'He', 'Li', 'Be', ' B', ' C', ' N', ' O', ' F', 'Ne', & 
+           'Na', 'Mg', 'Al', 'Si', ' P', ' S', 'Cl', 'Ar', ' K', 'Ca', & 
+           'Sc', 'Ti', ' V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', & 
+           'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Rb', 'Sr', ' Y', 'Zr', & 
+           'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn', & 
+           'Sb', 'Te', ' I', 'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd', & 
+           'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', & 
+           'Lu', 'Hf', 'Ta', ' W', 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg', & 
+           'Tl', 'Pb', 'Bi', 'Po', 'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th', & 
+           'Pa', ' U', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm', & 
+           'Md', 'No', 'Lr', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds', & 
+           'Rg', 'Cn' /)
+
 
     private
     public:: f_name, f_get_name, run_condense, run_collapse, run_collapse_clean, run_inventory, &
              read_tab4, write_cgi, check_cgi, run_inventory2
     contains
+    function f_get_name(z, a) result(s)
+        ! Return FISPACT name of nuclide za
+        implicit none
+        integer, intent(in):: z, a
+        character (len=6):: s
+
+        write(s, '(a2,i3.3)') f_name(z:z), a 
+        return
+    end function f_get_name
+
     subroutine read_tab4(ijk, gi)
         ! Read 2-nd column in the tab4 file for each time step
         implicit none
@@ -112,6 +136,71 @@ module fispactdriver
         return
     end subroutine write_cgi
 
+    subroutine write_mat_fispact(ijk)
+        ! Write materials in fine mesh element ijk in
+        ! fispact "FUEL" format
+        implicit none
+        integer, intent(in):: ijk(1:3)    ! fine mesh element indices 
+
+        ! local vars
+        character (len=:), allocatable:: fname
+        integer:: i_c, i, j, z, a, non
+        real:: czaa(100, 300)  ! zaa(Z, A) -- cumulative amount of nuclide ZA
+
+        integer, allocatable:: cind(:), mind(:)
+        real, allocatable:: frac(:), dens(:), conc(:)
+        real:: evol, amount
+
+        integer, allocatable:: mzaid(:)  ! List of ZA in material
+        real,    allocatable:: mfrac(:)  ! List of ZA fractions in material
+
+        integer, allocatable:: nea(:)  ! List of A in element
+        real,    allocatable:: nef(:)  ! List of fractions of A in element 
+
+        czaa = 0.0
+        call get_ma_properties(ijk(1), ijk(2), ijk(3), cind, frac, mind, dens, conc, evol)
+        conc = conc * 1e24  ! convert from MCNP 1/cm/barn to 1/cm3
+        do i_c = 1, size(cind)
+            if (mind(i_c) .gt. 0) then 
+                ! get composition of material in cell i_c
+                mzaid = get_zaid(mind(i_c))
+                mfrac = get_frac(mind(i_c))
+                amount = frac(i_c) * evol * conc(i_c)  ! amount of material in cell i_c
+                do i = 1, size(mzaid)
+                    call split_za(mzaid(i), z, a)
+                    if (a .eq. 0) then
+                        ! get natural abundancies
+                        nea = get_naa(z)
+                        nef = get_naf(z)
+                        do j = 1, size(nea)
+                            czaa(z, nea(j)) = czaa(z, nea(j)) + nef(j) * mfrac(i) * amount
+                        end do 
+                    else
+                        czaa(z, a) = czaa(z, a) + mfrac(i) * amount
+                    end if
+                end do
+            end if
+        end do
+
+        ! Total number of nuclides with non-zero amount:
+        non = count(czaa .gt. 0.0)
+
+        fname = r2s_scratch // ijk2str('/r2s_w/mat.content', ".", ijk)
+        call report_file_name('Writing composition to ', fname)
+        open(pr_scw, file=fname)
+        write(pr_scw, *) 'DENSITY', sum(dens*frac)
+        write(pr_scw, *) 'FUEL', non
+        do z = 1, size(czaa(:, 1))
+            do a = 1, size(czaa(1, :))
+                if (czaa(z, a) .gt. 0) then 
+                    write(pr_scw, *) f_get_name(z, a), czaa(z, a)
+                end if
+            end do
+        end do
+        close(pr_scw)
+        return
+    end subroutine
+
     subroutine run_inventory2(i, j, k, istat, ic, jc, kc, cstat, gi, dryrun)
         ! Run inventory calculation for a mixture of materials in the fine mesh element.
         implicit none
@@ -122,8 +211,6 @@ module fispactdriver
         logical, intent(in):: dryrun               ! Count runs, but do actually nothing
 
         ! local vars
-        integer, allocatable:: cind(:), mind(:)
-        real, allocatable:: frac(:), dens(:), conc(:)
         real:: v, evol, f, den
         integer:: nmats  ! number of materials in the fine mesh element
         integer:: tnon, non
@@ -132,12 +219,13 @@ module fispactdriver
         character (len=:), allocatable:: l
         character (len=4):: kw
         logical:: flux_normalized
+        integer:: ijk(1:3)
+
+        ijk = 0
 
         ! Get properties of cells in the current mesh element
-        call get_ma_properties(i, j, k, cind, frac, mind, dens, conc, evol)
-        conc = conc * 1e24  ! convert from MCNP 1/cm/barn to 1/cm3
-        nmats = count(mind .gt. 0)
-
+        nmats = get_ma_nom(i, j, k)  ! number of materials in the mesh element 
+        evol = get_mesh_volume(i, j, k)  ! mesh element volume.
         
         ! Get flux intensity in the fine mesh element
         f = vf(1, i, j, k, 1)
@@ -160,26 +248,10 @@ module fispactdriver
             end if
 
             ! Prepare material composition
-            fname = r2s_scratch // ijk2str('/r2s_w/mat.content', ".", (/i, j, k/))
-            call report_file_name('Writing composition to ', fname)
-            open(pr_scw, file=fname)
-            tnon = 0
-            do i_c = 1, size(cind)
-                if (mind(i_c) .gt. 0) then 
-                    call write_mat_fispact(pr_scw,                 &  ! unit
-                                           mind(i_c),              &  ! material index
-                                           evol*frac(i_c)*conc(i_c),  &  ! amount of material in cell i_c
-                                           non)                       ! out, number of entries in this material
-                    tnon = tnon + non
-                end if
-            end do
-            close(pr_scw)
-            fname = r2s_scratch // ijk2str('/r2s_w/mat.title', '.', (/i, j, k/))
-            call report_file_name('Writing mat title to', fname)
-            open(pr_scw, file=fname)
-            write(pr_scw, *) 'DENSITY', sum(dens*frac)
-            write(pr_scw, *) 'FUEL', tnon
-            close(pr_scw)
+            ijk(1) = i
+            ijk(2) = j
+            ijk(3) = k
+            call write_mat_fispact(ijk) 
 
             ! Write irradiation scenario
             ! TODO: read footer only once, broadcast to all processes

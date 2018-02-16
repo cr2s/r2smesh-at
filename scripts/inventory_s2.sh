@@ -9,8 +9,7 @@ scw="$r2s_scratch"/r2s_w                 # Scratch foder, where parts of the inv
 
 rm "$scr"/tab4.$1.$2.$3
 rm -rf "$wdr"
-rm "$scw"/mat.title.$1.$2.$3 \
-   "$scw"/mat.content.$1.$2.$3 \
+rm "$scw"/mat.content.$1.$2.$3 \
    "$scw"/scenario.$1.$2.$3 
 
 
