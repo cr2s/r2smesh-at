@@ -59,3 +59,40 @@ basis for case-specific files.
 Finally, the package contains several shell scripts that simplify intermediate
 manipulation of files.
 
+
+MCNP patches
+--------------
+TODO: how pathes applied. 
+
+MCNP patch for material detection is `<../mcnp_mod/kit-materials.patch.5>`.
+This patch makes MCNP5 to sample homogeneously coordinates in each mesh element
+and count material hits. This is done only by the MPI slave processes; each MPI
+process writes the number of hits into file ``outcellsNN``, where ``NN`` is the
+process index (from 1 to N-1, where N is the total number of MPI processes MCNP
+is started with). Since coordinate sampling in the mesh element is homogeneous,
+the number of material hits is proportional to the volumetric fraction of that
+material in the mesh element.  The more coordinate points sampled the better
+statistical presicion of the obtained volumetric fractions. The number of
+sampled coordinates is controlled by the 1-st entry on the ``IDUM`` card, which
+defines the number of samped coordinates per 1 cm3. By default it is set to 100
+(or 1000?).
+
+The second entry on the ``IDUM`` card specifies the meshtally name, where
+materials are detected.  If not specified (or set to 0), the first meshtally in
+the MCNP input is used.
+
+Another modifications introduced with the patch is that two additional print
+tables are printed to the ``outp`` file. The table ``print table FIS`` contains
+material compositions for all materials in the input file in format suitable
+for the FUEL fispact keyword. The table ``print table CMI`` contains cell
+indices, names, material indices and names, and density and concentrations. 
+
+After successfull run of the modified MCNP, files ``outcellsNN`` are generated.
+The must be concatenated into a single file that later will be read by the
+fispact driver. This can be done by running script
+`<../scripts/concatenate.sh>` in the folder where all `outcellsNN`` are
+located.
+
+
+
+
