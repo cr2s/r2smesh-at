@@ -64,7 +64,7 @@ MCNP patches
 --------------
 TODO: how pathes applied. 
 
-MCNP patch for material detection is `<../mcnp_mod/kit-materials.patch.5>`.
+MCNP patch for material detection is `kit-materials.patch.5`_.
 This patch makes MCNP5 to sample homogeneously coordinates in each mesh element
 and count material hits. This is done only by the MPI slave processes; each MPI
 process writes the number of hits into file ``outcellsNN``, where ``NN`` is the
@@ -90,9 +90,11 @@ indices, names, material indices and names, and density and concentrations.
 After successfull run of the modified MCNP, files ``outcellsNN`` are generated.
 The must be concatenated into a single file that later will be read by the
 fispact driver. This can be done by running script
-`<../scripts/concatenate.sh>` in the folder where all `outcellsNN`` are
-located.
+`concatenate.sh`_ in the folder where all `outcellsNN`` are
+located. This script generates file ``fine_mesh_content``, which contains all ``outcellsNN`.
 
+.. _kit-materials.patch.5: ../mcnp-mod/kit-materials.patch.5
 
+.. _concatenate.sh: ../scripts/concatenate.sh
 
 
