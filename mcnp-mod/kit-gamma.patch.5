@@ -1,6 +1,25 @@
-diff -Naur -X exclude_patterns mcnp5-orig/Source/src/dgs.F90 mcnp5-r2s-at-dgs/Source/src/dgs.F90
+diff -Naur -X exclude_patterns mcnp5-orig/bin/fpp mcnp5-r2s-dg/bin/fpp
+--- mcnp5-orig/bin/fpp	2014-12-01 13:34:32.000000000 +0100
++++ mcnp5-r2s-dg/bin/fpp	2018-02-01 15:11:47.000000000 +0100
+@@ -87,11 +87,11 @@
+ $verbose = 0;
+ #
+ # MCNP6 defaults:  -nomacros  -blanks
+-    $macro_substitute = 0;
+-    $blanks  = 1;
++#   $macro_substitute = 0;
++#   $blanks  = 1;
+ # MCNP5 defaults:  -macros  -noblanks
+-#   $macro_substitute = 1;
+-#   $blanks  = 0;
++    $macro_substitute = 1;
++    $blanks  = 0;
+ #
+ ##### get args
+ #
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/dgs.F90 mcnp5-r2s-dg/Source/src/dgs.F90
 --- mcnp5-orig/Source/src/dgs.F90	1970-01-01 01:00:00.000000000 +0100
-+++ mcnp5-r2s-at-dgs/Source/src/dgs.F90	2018-01-17 12:24:04.370316000 +0100
++++ mcnp5-r2s-dg/Source/src/dgs.F90	2018-02-01 15:07:55.000000000 +0100
 @@ -0,0 +1,169 @@
 +! author: anton.travleev@kit.edu
 +
@@ -171,9 +190,9 @@ diff -Naur -X exclude_patterns mcnp5-orig/Source/src/dgs.F90 mcnp5-r2s-at-dgs/So
 +end module dgs_module
 +
 +
-diff -Naur -X exclude_patterns mcnp5-orig/Source/src/FILE.list mcnp5-r2s-at-dgs/Source/src/FILE.list
---- mcnp5-orig/Source/src/FILE.list	2015-09-28 14:02:58.000000000 +0200
-+++ mcnp5-r2s-at-dgs/Source/src/FILE.list	2018-01-17 12:24:04.491471000 +0100
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/FILE.list mcnp5-r2s-dg/Source/src/FILE.list
+--- mcnp5-orig/Source/src/FILE.list	2014-12-01 13:34:32.000000000 +0100
++++ mcnp5-r2s-dg/Source/src/FILE.list	2018-02-01 15:07:55.000000000 +0100
 @@ -31,7 +31,9 @@
  lx5_mod.F90  main.F90     mapmaz.F90   matmpy.F90   mbody.F90    \
  mbodyo.F90   mbodyp.F90   mbodyr.F90   mbodys.F90   mcnp_random.F90 \
@@ -185,9 +204,9 @@ diff -Naur -X exclude_patterns mcnp5-orig/Source/src/FILE.list mcnp5-r2s-at-dgs/
  mgimps.F90   mgxspt.F90   midpnt.F90   movlat.F90   msgcon.F90   msgtsk.F90   \
  namchg.F90   namrsd.F90   newcd1.F90   newcel.F90   newcrd.F90   nextit.F90   \
  norma.F90    normh.F90    nsf.F90      nxtit1.F90   nxtsym.F90   oldcd1.F90   \
-diff -Naur -X exclude_patterns mcnp5-orig/Source/src/imcn.F90 mcnp5-r2s-at-dgs/Source/src/imcn.F90
---- mcnp5-orig/Source/src/imcn.F90	2015-09-28 14:02:58.000000000 +0200
-+++ mcnp5-r2s-at-dgs/Source/src/imcn.F90	2018-01-17 12:24:04.690029000 +0100
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/imcn.F90 mcnp5-r2s-dg/Source/src/imcn.F90
+--- mcnp5-orig/Source/src/imcn.F90	2014-12-01 13:34:32.000000000 +0100
++++ mcnp5-r2s-dg/Source/src/imcn.F90	2018-02-01 15:07:55.000000000 +0100
 @@ -16,6 +16,8 @@
    use uran_mod,     only : uran_allocate, uran_n, uran_univ, uran_xyz
    use kadjoint_mod, only : do_any_kadjoint, kadjoint_init, kadjoint_setup
@@ -206,9 +225,9 @@ diff -Naur -X exclude_patterns mcnp5-orig/Source/src/imcn.F90 mcnp5-r2s-at-dgs/S
    ! Clean up for both initial and continue runs.
    call ufiles
    close(iu1)
-diff -Naur -X exclude_patterns mcnp5-orig/Source/src/msgcon.F90 mcnp5-r2s-at-dgs/Source/src/msgcon.F90
---- mcnp5-orig/Source/src/msgcon.F90	2015-09-28 14:03:02.000000000 +0200
-+++ mcnp5-r2s-at-dgs/Source/src/msgcon.F90	2018-01-17 12:24:04.692119000 +0100
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/msgcon.F90 mcnp5-r2s-dg/Source/src/msgcon.F90
+--- mcnp5-orig/Source/src/msgcon.F90	2014-12-01 13:34:32.000000000 +0100
++++ mcnp5-r2s-dg/Source/src/msgcon.F90	2018-02-01 15:07:55.000000000 +0100
 @@ -21,6 +21,8 @@
    use qttyin_mod, only: qttyin
    use erprnt_mod, only: erprnt, erprnt_i8_k1
@@ -227,9 +246,9 @@ diff -Naur -X exclude_patterns mcnp5-orig/Source/src/msgcon.F90 mcnp5-r2s-at-dgs
    call msg_put(  gephcm(1: nephcm), 1,  nephcm )
    call msg_put( i8ephcm(1:l8ephcm), 1, l8ephcm )
    call msg_put(  jephcm(1: lephcm), 1,  lephcm )
-diff -Naur -X exclude_patterns mcnp5-orig/Source/src/msgtsk.F90 mcnp5-r2s-at-dgs/Source/src/msgtsk.F90
---- mcnp5-orig/Source/src/msgtsk.F90	2015-09-28 14:02:58.000000000 +0200
-+++ mcnp5-r2s-at-dgs/Source/src/msgtsk.F90	2018-01-17 12:24:05.202269000 +0100
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/msgtsk.F90 mcnp5-r2s-dg/Source/src/msgtsk.F90
+--- mcnp5-orig/Source/src/msgtsk.F90	2014-12-01 13:34:32.000000000 +0100
++++ mcnp5-r2s-dg/Source/src/msgtsk.F90	2018-02-01 15:07:55.000000000 +0100
 @@ -21,6 +21,8 @@
    use uran_mod,  only :  uran_msgget 
    use kadjoint_mod, only : do_any_kadjoint, kadjoint_msgget, kadjoint_msgtsk, kadjoint_msgtsk_new
@@ -248,9 +267,9 @@ diff -Naur -X exclude_patterns mcnp5-orig/Source/src/msgtsk.F90 mcnp5-r2s-at-dgs
    call msg_get(  gephcm(1: nephcm), 1,  nephcm )
    call msg_get( i8ephcm(1:l8ephcm), 1, l8ephcm )
    call msg_get(  jephcm(1: lephcm), 1,  lephcm )
-diff -Naur -X exclude_patterns mcnp5-orig/Source/src/source.F90 mcnp5-r2s-at-dgs/Source/src/source.F90
---- mcnp5-orig/Source/src/source.F90	2015-09-28 14:03:00.000000000 +0200
-+++ mcnp5-r2s-at-dgs/Source/src/source.F90	2018-01-24 11:45:32.211528000 +0100
+diff -Naur -X exclude_patterns mcnp5-orig/Source/src/source.F90 mcnp5-r2s-dg/Source/src/source.F90
+--- mcnp5-orig/Source/src/source.F90	2014-12-01 13:34:32.000000000 +0100
++++ mcnp5-r2s-dg/Source/src/source.F90	2018-02-01 15:07:55.000000000 +0100
 @@ -1,5 +1,6 @@
  !+ $Id: source.F90,v 1.2 2006/10/03 02:10:16 mashnik Exp $
  ! Copyright LANS/LANL/DOE - see file COPYRIGHT_INFO
