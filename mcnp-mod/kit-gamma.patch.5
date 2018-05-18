@@ -276,7 +276,7 @@ diff -Naur -X exclude_patterns mcnp5-orig/Source/src/msgtsk.F90 mcnp5-r2s-dg/Sou
    call msg_get(  jephcm(1: lephcm), 1,  lephcm )
 diff -Naur -X exclude_patterns mcnp5-orig/Source/src/source.F90 mcnp5-r2s-dg/Source/src/source.F90
 --- mcnp5-orig/Source/src/source.F90	2014-12-01 13:34:32.000000000 +0100
-+++ mcnp5-r2s-dg/Source/src/source.F90	2018-02-01 15:07:55.000000000 +0100
++++ mcnp5-r2s-dg/Source/src/source.F90	2018-03-19 15:29:56.000000000 +0100
 @@ -1,5 +1,6 @@
  !+ $Id: source.F90,v 1.2 2006/10/03 02:10:16 mashnik Exp $
  ! Copyright LANS/LANL/DOE - see file COPYRIGHT_INFO
@@ -284,7 +284,7 @@ diff -Naur -X exclude_patterns mcnp5-orig/Source/src/source.F90 mcnp5-r2s-dg/Sou
  
  subroutine source
    ! dummy subroutine.  aborts job if source subroutine is missing.
-@@ -8,12 +9,126 @@
+@@ -8,12 +9,129 @@
    ! following variables must be defined within the subroutine:
    ! xxx,yyy,zzz,icl,jsu,erg,wgt,tme and possibly ipt,uuu,vvv,www.
    ! subroutine srcdx may also be needed.
@@ -387,6 +387,9 @@ diff -Naur -X exclude_patterns mcnp5-orig/Source/src/source.F90 mcnp5-r2s-dg/Sou
 +550 continue
 +  ! accept xyz only if in material:
 +  if (mat(icl) == 0) goto 10 
++  ! TODO: allow only particular cell names. Assume that cell names are given in a text file and converted to cell indices. The array
++  ! cells_to_consider contains cell indices with activated material. In this case, the above condition should be supplemented with "
++  ! icl in cells_to_consider"
 +
 +  ! sample particle energy
 +  r = 1.0 - rang()  ! ensure r is non-zero
