@@ -6,6 +6,17 @@ e.g. adding the following line to the ``~/.profile``::
 
     export R2S_ROOT=/path/to/this/folder
 
+The next step is to ensure that the `fispact-II` executable can be found in
+your `$PATH`.  On the forHLR-II cluster, fispact executable is placed in
+`/pfs/data4/project/fh2-project-hifimc/rx8040/r2smesh/fispact-II`. Put a link
+to your local `bin`, e.g::
+    
+    ln -s /pfs/data4/project/fh2-project-hifimc/rx8040/r2smesh/fispact-II $HOME/bin/.
+
+and ensure that `$HOME/bin/` is in your `$PATH`::
+
+    export PATH=$HOME/bin:$PATH
+
 
 Create a working place, i.e. a folder containing the following files::
 
