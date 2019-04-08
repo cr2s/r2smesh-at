@@ -244,7 +244,7 @@ module matall
                 do j = 1, nj, dj
                     do k = 1, nk, dk
                         l = ma_3(i, j, k)
-                        write(pr_log, '(4i5, \)') i, j, k, l
+                        write(pr_log, '(4i8, \)') i, j, k, l
                         if (l .gt. 0) then
                             i1 = ma_i(l-1) + 1
                             i2 = ma_i(l)
