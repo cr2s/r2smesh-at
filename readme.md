@@ -1,7 +1,7 @@
 # KIT implementation, Dec 2017
 This implementation is written from scratch, but in some aspects mimics the original R2Smesh.
 
-A short recipe how to start can be found in the [recipe](recipe.rst).
+A short recipe how to start can be found in the [recipe](doc/recipe.rst).
 
 
 # Note for collaborators
