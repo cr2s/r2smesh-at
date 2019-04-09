@@ -25,10 +25,16 @@
 # containing executables, default scripts and input files. It is assumed that
 # the user has defined the $R2S_ROOT variable, which points to the default
 # place of r2s distribution.
-if [ ! -v r2s_root ]; then
-    # If r2s_root is not defined, set it to the original folder of this file
+if [ ! -v R2S_ROOT ]; then
+    # This situation is bad, but exiting the script will not help 
+    # (on Marconi it will close the ssh connection, when this script
+    # is sourced). Therefore, siply warn the user.
+    echo "WARNING: R2S_ROOT variable is undefined. Check if it is guessed correctly"
+    export r2s_root=`pwd`
+else    
     export r2s_root=$R2S_ROOT
 fi
+echo "R2S_ROOT: $r2s_root"
 
 # Path to the activation driver executable
 export r2s_driver=$r2s_root/bin/adriver.exe
