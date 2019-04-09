@@ -17,6 +17,10 @@ and ensure that `$HOME/bin/` is in your `$PATH`::
 
     export PATH=$HOME/bin:$PATH
 
+On the Marconi cluster the fispact-II executable can be found in::
+
+    /marconi_work/FUA32_MCHIFI/atr_share/fispact-II/fispact-II
+
 
 Create a working place, i.e. a folder containing the following files::
 
@@ -29,7 +33,7 @@ Create a working place, i.e. a folder containing the following files::
 
     r2s_env.sh                    # script to setup environment variables
 
-In the simplest case, only one of these files must be prepared by hands: this
+    In the simplest case, only one of these files must be prepared by hands: this
 is the file containing irradiation scenario ``input/inventory_input_footer``.
 The other files are obtained by processing MCNP output files. 
 
