@@ -121,6 +121,16 @@ export r2s_inventory_s2=$r2s_scripts/inventory_s2.sh
 # variable defines the folder where all temporary files are written.
 export r2s_scratch='/scratch_local'   # For Marconi nodes
 
+# If several independent runs use the same scratch folder, they will interfere.
+# Ensure that each run gets its own unique scratch folder. Note that the unique
+# folder is created at the moment this script is executed (or sourced),
+# therefore, be sure to source it each time a new driver run is started. A good
+# practice is to source this file just before starting adriver.exe, e.g. in a
+# script.
+# TODO: add ``run_adriver.sh`` script that has two steps: sources this file and runs adriver.
+r2s_scratch=`mktemp -d --tmpdir=$r2s_scratch -t r2s.XXXX`
+
+
 
 ##################################
 #    CASE-DEPENDENT variables    #
