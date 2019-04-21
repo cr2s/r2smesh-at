@@ -1,0 +1,216 @@
+          Thread Name & Version = MCNP5, 1.60
+                                  _                                      
+            ._ _    _  ._   ._   |_                                      
+            | | |  (_  | |  |_)   _)                                     
+                            |                                            
+  +---------------------------------------------------------------------+
+  | Copyright 2010. Los Alamos National Security, LLC.  All rights      |
+  | reserved.                                                           |
+  |   This material was produced under U.S. Government contract         |
+  | DE-AC52-06NA25396 for Los Alamos National Laboratory, which is      |
+  | operated by Los Alamos National Security, LLC, for the U.S.         |
+  | Department of Los Energy. The Government is granted for itself and  |
+  | others acting on its behalf a paid-up, nonexclusive, irrevocable    |
+  | worldwide license in this material to reproduce, prepare derivative |
+  | works, and perform publicly and display publicly. Beginning five    |
+  | (5) years after 2010, subject to additional five-year worldwide     |
+  | renewals, the Government is granted for itself and others acting on |
+  | its behalf a paid-up, nonexclusive, irrevocable worldwide license   |
+  | in this material to reproduce, prepare derivative works, distribute |
+  | copies to the public, perform publicly and display publicly, and to |
+  | permit others to do so. NEITHER THE UNITED STATES NOR THE UNITED    |
+  | STATES DEPARTMENT OF ENERGY, NOR LOS ALAMOS NATIONAL SECURITY, LLC, |
+  | NOR ANY OF THEIR EMPLOYEES, MAKES ANY WARRANTY, EXPRESS OR IMPLIED, |
+  | OR ASSUMES ANY LEGAL LIABILITY OR RESPONSIBILITY FOR THE ACCURACY,  |
+  | COMPLETENESS, OR USEFULNESS OF ANY INFORMATION, APPARATUS, PRODUCT, |
+  | OR PROCESS DISCLOSED, OR REPRESENTS THAT ITS USE WOULD NOT INFRINGE |
+  | PRIVATELY OWNED RIGHTS.                                             |
+  +---------------------------------------------------------------------+
+  
+1mcnp     version 5.mpi ld=11152017                     02/02/18 10:08:20 
+ *************************************************************************                 probid =  02/02/18 10:08:20 
+ name = test.inp                                                                 
+
+         1-       MCNP model to test r2smesh                                                      
+         2-       1 1 -1.0     -1 imp:n=1                                                         
+         3-       2 2 -7.0   1 -2 imp:n=1                                                         
+         4-       3 0        2    imp:n=0                                                         
+         5-                                                                                       
+         6-       c surfaces                                                                      
+         7-       1 so 10                                                                         
+         8-       2 so 15                                                                         
+         9-                                                                                       
+        10-       c data                                                                          
+        11-       nps 300000                                                                      
+        12-       sdef pos 0 0 0 erg 1                                                            
+        13-       m1    1001 2.0                                                                  
+        14-             8016 1.0                                                                  
+        15-       m2    26054 1.0                                                                 
+        16-             28060 1.0                                                                 
+        17-       fmesh4:n  origin -15 -15 -15                                                    
+        18-                 imesh 0 15 iints 10 20                                                
+        19-                 jmesh   15 jints 20                                                   
+        20-                 kmesh 0 15 kints 20 10                                                
+        21-       fmesh14:n origin -15 -15 -15                                                    
+        22-                 imesh 0 15 iints  5  5                                                
+        23-                 jmesh   15 jints 20                                                   
+        24-                 kmesh 0 15 kints  5  5                                                
+        25-                 emesh=1.00001e-07 4.13994e-07 5.31579e-07 6.82560e-07 8.76425e-07     
+        26-                1.12535e-06 1.44498e-06 1.85539e-06 2.38237e-06 3.05902e-06            
+        27-                3.92786e-06 5.04348e-06 6.47595e-06 8.31529e-06 1.06770e-05            
+        28-                1.37096e-05 1.76035e-05 2.26033e-05 2.90232e-05 3.72665e-05            
+        29-                4.78512e-05 6.14421e-05 7.88932e-05 1.01301e-04 1.30073e-04            
+        30-                1.67017e-04 2.14454e-04 2.75364e-04 3.53575e-04 4.53999e-04            
+        31-                5.82947e-04 7.48518e-04 9.61117e-04 1.23410e-03 1.58461e-03            
+        32-                2.03468e-03 2.24867e-03 2.48517e-03 2.61259e-03 2.74654e-03            
+        33-                3.03539e-03 3.35463e-03 3.70744e-03 4.30742e-03 5.53084e-03            
+        34-                7.10174e-03 9.11882e-03 1.05946e-02 1.17088e-02 1.50344e-02            
+        35-                1.93045e-02 2.18749e-02 2.35786e-02 2.41755e-02 2.47875e-02            
+        36-                2.60584e-02 2.70001e-02 2.85011e-02 3.18278e-02 3.43067e-02            
+        37-                4.08677e-02 4.63092e-02 5.24752e-02 5.65622e-02 6.73795e-02            
+        38-                7.20245e-02 7.94987e-02 8.25034e-02 8.65170e-02 9.80365e-02            
+        39-                1.11090e-01 1.16786e-01 1.22773e-01 1.29068e-01 1.35686e-01            
+        40-                1.42642e-01 1.49956e-01 1.57644e-01 1.65727e-01 1.74224e-01            
+        41-                1.83156e-01 1.92547e-01 2.02419e-01 2.12797e-01 2.23708e-01            
+        42-                2.35177e-01 2.47235e-01 2.73237e-01 2.87246e-01 2.94518e-01            
+        43-                2.97211e-01 2.98491e-01 3.01974e-01 3.33733e-01 3.68832e-01            
+        44-                3.87742e-01 4.07622e-01 4.50492e-01 4.97871e-01 5.23397e-01            
+        45-                5.50232e-01 5.78443e-01 6.08101e-01 6.39279e-01 6.72055e-01            
+        46-                7.06512e-01 7.42736e-01 7.80817e-01 8.20850e-01 8.62936e-01            
+        47-                9.07180e-01 9.61672e-01 1.00259e+00 1.10803e+00 1.16484e+00            
+        48-                1.22456e+00 1.28735e+00 1.35335e+00 1.42274e+00 1.49569e+00            
+        49-                1.57237e+00 1.65299e+00 1.73774e+00 1.82684e+00 1.92050e+00            
+        50-                2.01897e+00 2.12248e+00 2.23130e+00 2.30693e+00 2.34570e+00            
+        51-                2.36533e+00 2.38513e+00 2.46597e+00 2.59240e+00 2.72532e+00            
+        52-                2.86505e+00 3.01194e+00 3.16637e+00 3.32871e+00 3.67879e+00            
+        53-                4.06570e+00 4.49329e+00 4.72367e+00 4.96585e+00 5.22046e+00            
+        54-                5.48812e+00 5.76950e+00 6.06531e+00 6.37628e+00 6.59241e+00            
+        55-                6.70320e+00 7.04688e+00 7.40818e+00 7.78801e+00 8.18731e+00            
+        56-                8.60708e+00 9.04837e+00 9.51229e+00 1.00000e+01 1.05127e+01            
+        57-                1.10517e+01 1.16183e+01 1.22140e+01 1.25232e+01 1.28403e+01            
+        58-                1.34986e+01 1.38403e+01 1.41907e+01 1.45499e+01 1.49182e+01            
+        59-                1.56831e+01 1.64872e+01 1.69046e+01 1.73325e+01 1.96403e+01            
+        60-                                                                                       
+ 
+  warning.    2 materials had unnormalized fractions. print table 40.
+1cells                                                                                                  print table 60
+
+                               atom        gram                                            neutron                                     
+              cell     mat    density     density     volume       mass            pieces importance                                   
+
+        1        1        1  1.00309E-01 1.00000E+00 4.18879E+03 4.18879E+03           1  1.0000E+00                                   
+        2        2        2  7.40391E-02 7.00000E+00 9.94838E+03 6.96386E+04           1  1.0000E+00                                   
+        3        3        0  0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00           0  0.0000E+00                                   
+
+ total                                               1.41372E+04 7.38274E+04
+
+    minimum source weight = 1.0000E+00    maximum source weight = 1.0000E+00
+
+ ***************************************************
+ * Random Number Generator  =                    1 *
+ * Random Number Seed       =       19073486328125 *
+ * Random Number Multiplier =       19073486328125 *
+ * Random Number Adder      =                    0 *
+ * Random Number Bits Used  =                   48 *
+ * Random Number Stride     =               152917 *
+ ***************************************************
+
+
+          1 warning message so far.
+1cross-section tables                                                                                   print table 100
+
+     table    length
+
+                        tables from file fendl21.2                                                       
+
+   1001.21c    2885  1-H-1 from FENDL-2.1(JENDL-3.3) NJOY 99.90 NDS/IAEA Nov2004                  mat 125      12/10/04
+                     temperature = 2.5850E-08 adjusted to 2.5300E-08
+   8016.21c  171536  8-O-16 from FENDL-2.1(ENDF/B-VI) NJOY 99.90 NDS/IAEA Nov2004                 mat 825      12/10/04
+                     temperature = 2.5850E-08 adjusted to 2.5300E-08
+  26054.21c  164074  26-Fe-54 from FENDL-2.1(ENDF/B-VI) NJOY 99.90 NDS/IAEA Nov2004               mat2625      12/10/04
+                     temperature = 2.5850E-08 adjusted to 2.5300E-08
+  28060.21c  224982  28-Ni-60 from FENDL-2.1(JEFF-3.0) NJOY 99.90 NDS/IAEA Nov2004                mat2831      12/10/04
+                     temperature = 2.5850E-08 adjusted to 2.5300E-08
+
+  total      563477
+ 
+  comment.     4 cross sections modified by free gas thermal treatment.
+
+ ***********************************************************************************************************************
+
+ dump no.    1 on file test.inpr     nps =           0     coll =              0     ctm =        0.00   nrn =          
+       0
+
+          1 warning message so far.
+ master starting       7 tasks with       1 threads each  02/02/18 10:08:20 
+ master set rendezvous nps =         200    02/02/18 10:08:20 
+ master set rendezvous nps =      300000    02/02/18 10:08:20 
+1problem summary                                                                                                           
+
+      run terminated when      300000  particle histories were done.
++                                                                                                    02/02/18 10:08:26 
+      MCNP model to test r2smesh                                                           probid =  02/02/18 10:08:20 
+0
+ neutron creation    tracks      weight        energy            neutron loss        tracks      weight        energy
+                                 (per source particle)                                           (per source particle)
+
+ source              300000    1.0000E+00    1.0000E+00          escape              153994    3.8734E-01    4.9073E-02
+                                                                 energy cutoff            0    0.            0.        
+                                                                 time cutoff              0    0.            0.        
+ weight window            0    0.            0.                  weight window            0    0.            0.        
+ cell importance          0    0.            0.                  cell importance          0    0.            0.        
+ weight cutoff            0    8.4033E-02    4.7232E-08          weight cutoff       146006    8.4070E-02    3.5502E-08
+ e or t importance        0    0.            0.                  e or t importance        0    0.            0.        
+ dxtran                   0    0.            0.                  dxtran                   0    0.            0.        
+ forced collisions        0    0.            0.                  forced collisions        0    0.            0.        
+ exp. transform           0    0.            0.                  exp. transform           0    0.            0.        
+ upscattering             0    0.            4.2257E-07          downscattering           0    0.            9.5061E-01
+ photonuclear             0    0.            0.                  capture                  0    6.1262E-01    3.1348E-04
+ (n,xn)                   0    0.            0.                  loss to (n,xn)           0    0.            0.        
+ prompt fission           0    0.            0.                  loss to fission          0    0.            0.        
+ delayed fission          0    0.            0.                                                                        
+     total           300000    1.0840E+00    1.0000E+00              total           300000    1.0840E+00    1.0000E+00
+
+   number of neutrons banked                       0        average time of (shakes)              cutoffs
+   neutron tracks per source particle     1.0000E+00          escape            3.8875E+03          tco   1.0000E+33
+   neutron collisions per source particle 7.5393E+01          capture           9.8863E+03          eco   0.0000E+00
+   total neutron collisions                 22617987          capture or escape 7.5626E+03          wc1  -5.0000E-01
+   net multiplication              1.0000E+00 0.0000          any termination   8.5152E+03          wc2  -2.5000E-01
+
+ computer time so far in this run     0.75 minutes            maximum number ever in bank         0
+ computer time in mcrun               0.62 minutes            bank overflows to backup file       0
+ source particles per minute            4.8348E+05
+ random numbers generated                376273480            most random numbers used was       10822 in history      166298
+
+ range of sampled source weights = 1.0000E+00 to 1.0000E+00
+
+ estimated system efficiency for MPI usage = 95%
+
+ number of histories processed by each MPI task
+           0       42856       42858       42856       42858       42856       42858       42858
+1neutron  activity in each cell                                                                         print table 126
+
+                       tracks     population   collisions   collisions     number        flux        average      average
+              cell    entering                               * weight     weighted     weighted   track weight   track mfp
+                                                          (per history)    energy       energy     (relative)      (cm)
+
+        1        1      353631       300000     22087799    5.0906E+01   6.3966E-05   1.5018E-01   7.4752E-01   8.4968E-01
+        2        2      322766       273527       530188    1.3098E+00   8.7661E-05   1.1290E-01   7.2383E-01   7.2833E+00
+
+           total        676397       573527     22617987    5.2216E+01
+
+ Mesh tallies written to file meshtal
+
+ ***********************************************************************************************************************
+
+ dump no.    2 on file test.inpr     nps =      300000     coll =       22617987     ctm =        0.62   nrn =        
+ 376273480
+
+          1 warning message so far.
+
+
+ run terminated when      300000  particle histories were done.
+
+ computer time =    0.78 minutes
+
+ mcnp     version 5.mpi 11152017                     02/02/18 10:08:28                     probid =  02/02/18 10:08:20 

@@ -1,0 +1,143 @@
+          Thread Name & Version = MCNP5, 1.60
+                                  _                                      
+            ._ _    _  ._   ._   |_                                      
+            | | |  (_  | |  |_)   _)                                     
+                            |                                            
+  +---------------------------------------------------------------------+
+  | Copyright 2010. Los Alamos National Security, LLC.  All rights      |
+  | reserved.                                                           |
+  |   This material was produced under U.S. Government contract         |
+  | DE-AC52-06NA25396 for Los Alamos National Laboratory, which is      |
+  | operated by Los Alamos National Security, LLC, for the U.S.         |
+  | Department of Los Energy. The Government is granted for itself and  |
+  | others acting on its behalf a paid-up, nonexclusive, irrevocable    |
+  | worldwide license in this material to reproduce, prepare derivative |
+  | works, and perform publicly and display publicly. Beginning five    |
+  | (5) years after 2010, subject to additional five-year worldwide     |
+  | renewals, the Government is granted for itself and others acting on |
+  | its behalf a paid-up, nonexclusive, irrevocable worldwide license   |
+  | in this material to reproduce, prepare derivative works, distribute |
+  | copies to the public, perform publicly and display publicly, and to |
+  | permit others to do so. NEITHER THE UNITED STATES NOR THE UNITED    |
+  | STATES DEPARTMENT OF ENERGY, NOR LOS ALAMOS NATIONAL SECURITY, LLC, |
+  | NOR ANY OF THEIR EMPLOYEES, MAKES ANY WARRANTY, EXPRESS OR IMPLIED, |
+  | OR ASSUMES ANY LEGAL LIABILITY OR RESPONSIBILITY FOR THE ACCURACY,  |
+  | COMPLETENESS, OR USEFULNESS OF ANY INFORMATION, APPARATUS, PRODUCT, |
+  | OR PROCESS DISCLOSED, OR REPRESENTS THAT ITS USE WOULD NOT INFRINGE |
+  | PRIVATELY OWNED RIGHTS.                                             |
+  +---------------------------------------------------------------------+
+  
+1mcnp     version 5.mpi ld=01172018                     02/02/18 10:09:21 
+ *************************************************************************
+ c run = test.inpr inp = cont.inp                                                
+
+
+ file test.inpr was written by mcnp version 5.mpi thread MCNP5 1.60 loaded on 11152017
+
+ starting from dump no.    2 from file test.inpr     nps =      300000     ctm =        0.62     probid =  02/02/18
+ 10:08:20
+ starting from dump    2  file test.inpr nps =      300000 ctm =        0.62
+ MCNP model to test r2smesh                                                      
+
+      1-       continue                                                                        
+         2-       nps    300010    $ set above the latest dump in runtpe                          
+         3-       print 40         $ turn off unnecessary print tables                            
+         4-       idum 1000 4      $ 1000 samples per cm3, in meshtally 4                         
+         5-                                                                                       
+
+ ***************************************************
+ * Random Number Generator  =                    1 *
+ * Random Number Seed       =       19073486328125 *
+ * Random Number Multiplier =       19073486328125 *
+ * Random Number Adder      =                    0 *
+ * Random Number Bits Used  =                   48 *
+ * Random Number Stride     =               152917 *
+ ***************************************************
+
+
+          1 warning message so far.
+ master starting       7 tasks with       1 threads each  02/02/18 10:09:21 
+ master set rendezvous nps =      300010    02/02/18 10:09:21 
+1problem summary                                                                                                           
+
+      run terminated when      300010  particle histories were done.
++                                                                                                    02/02/18 10:09:21 
+      MCNP model to test r2smesh                                                           probid =  02/02/18 10:08:20 
+      continue                                                                        
+0
+ neutron creation    tracks      weight        energy            neutron loss        tracks      weight        energy
+                                 (per source particle)                                           (per source particle)
+
+ source              300010    1.0000E+00    1.0000E+00          escape              154000    3.8735E-01    4.9073E-02
+                                                                 energy cutoff            0    0.            0.        
+                                                                 time cutoff              0    0.            0.        
+ weight window            0    0.            0.                  weight window            0    0.            0.        
+ cell importance          0    0.            0.                  cell importance          0    0.            0.        
+ weight cutoff            0    8.4033E-02    4.7231E-08          weight cutoff       146010    8.4069E-02    3.5501E-08
+ e or t importance        0    0.            0.                  e or t importance        0    0.            0.        
+ dxtran                   0    0.            0.                  dxtran                   0    0.            0.        
+ forced collisions        0    0.            0.                  forced collisions        0    0.            0.        
+ exp. transform           0    0.            0.                  exp. transform           0    0.            0.        
+ upscattering             0    0.            4.2256E-07          downscattering           0    0.            9.5061E-01
+ photonuclear             0    0.            0.                  capture                  0    6.1262E-01    3.1348E-04
+ (n,xn)                   0    0.            0.                  loss to (n,xn)           0    0.            0.        
+ prompt fission           0    0.            0.                  loss to fission          0    0.            0.        
+ delayed fission          0    0.            0.                                                                        
+     total           300010    1.0840E+00    1.0000E+00              total           300010    1.0840E+00    1.0000E+00
+
+   number of neutrons banked                       0        average time of (shakes)              cutoffs
+   neutron tracks per source particle     1.0000E+00          escape            3.8875E+03          tco   1.0000E+33
+   neutron collisions per source particle 7.5392E+01          capture           9.8861E+03          eco   0.0000E+00
+   total neutron collisions                 22618458          capture or escape 7.5625E+03          wc1  -5.0000E-01
+   net multiplication              1.0000E+00 0.0000          any termination   8.5151E+03          wc2  -2.5000E-01
+
+ computer time so far in this run     0.02 minutes            maximum number ever in bank         0
+ computer time in mcrun               0.62 minutes            bank overflows to backup file       0
+ source particles per minute            4.8330E+05
+ random numbers generated                376281062            most random numbers used was       10822 in history      166298
+
+ range of sampled source weights = 1.0000E+00 to 1.0000E+00
+
+ estimated system efficiency for MPI usage = 10%
+
+ number of histories processed by each MPI task
+           0           1           1           2           1           2           1           2
+1neutron  activity in each cell                                                                         print table 126
+
+                       tracks     population   collisions   collisions     number        flux        average      average
+              cell    entering                               * weight     weighted     weighted   track weight   track mfp
+                                                          (per history)    energy       energy     (relative)      (cm)
+
+        1        1      353642       300010     22088251    5.0906E+01   6.3967E-05   1.5018E-01   7.4753E-01   8.4968E-01
+        2        2      322777       273537       530207    1.3098E+00   8.7664E-05   1.1290E-01   7.2383E-01   7.2832E+00
+
+           total        676419       573547     22618458    5.2216E+01
+1cell and material indices                                                                                   print table CMI
+      Cell_index        Cel_name Geometry_length Universe_number  Material_index   Material_name         Density            Conc
+               1               1               1               0               1               1   1.0000000E+00   1.0030851E-01
+               2               2               2               0               2               2   7.0000000E+00   7.4039089E-02
+               3               3               1               0               0               0   0.0000000E+00   0.0000000E+00
+ end of print table CMI
+1FISPACT format                                                                                   print table FIS
+           2
+ Material           1           1           2
+        1001  H001   0.666666666666667     
+        8016  O016   0.333333333333333     
+ Material           2           2           2
+       26054 Fe054   0.500000000000000     
+       28060 Ni060   0.500000000000000     
+ end of print table FIS
+
+ ***********************************************************************************************************************
+
+ dump no.    3 on file test.inpr     nps =      300010     coll =       22618458     ctm =        0.62   nrn =        
+ 376281062
+
+          1 warning message so far.
+
+
+ run terminated when      300010  particle histories were done.
+
+ computer time =    0.03 minutes
+
+ mcnp     version 5.mpi 01172018                     02/02/18 10:09:22                     probid =  02/02/18 10:08:20 

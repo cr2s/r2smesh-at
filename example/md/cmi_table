@@ -1,0 +1,5 @@
+1cell and material indices                                                                                   print table CMI
+      Cell_index        Cel_name Geometry_length Universe_number  Material_index   Material_name         Density            Conc
+               1               1               1               0               1               1   1.0000000E+00   1.0030851E-01
+               2               2               2               0               2               2   7.0000000E+00   7.4039089E-02
+               3               3               1               0               0               0   0.0000000E+00   0.0000000E+00
