@@ -19,3 +19,6 @@ $fcc $opt -diag-file=./compile.log \
             matall_module.f90 \
             fd_module.f90 \
             adriver.f90 \
+
+# copy exe to the ../bin directory            
+[ -f adriver.exe ] && ( mkdir -p ../bin; cp adriver.exe ../bin/. )             
