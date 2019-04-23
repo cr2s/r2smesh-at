@@ -87,10 +87,10 @@ export r2s_fispact_exe=`which fispact-II`
 
 # Use user's variable, if not set try to guess
 if [ -v FISPACT_DATA ]; then
+    r2s_fispact_data="$FISPACT_DATA"    
+else
     # FISPACT_DATA not set. Try to guess from the realpath to fispact-II executable
     r2s_fispact_data=$(dirname `realpath $r2s_fispact_exe`)
-else
-    r2s_fispact_data="$FISPACT_DATA"    
 fi
 export r2s_fispact_data
 
