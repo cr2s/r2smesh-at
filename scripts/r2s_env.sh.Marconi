@@ -84,7 +84,15 @@ export r2s_fispact_exe=`which fispact-II`
 # files necessary to start fispact) to "fispact-data".  The latter name must be
 # used in $r2s_condense_files, $r2s_collapse_files and $r2s_inventory_files
 # files.
-export r2s_fispact_data=/marconi_work/FUA32_MCHIFI/prasoon/r2smesh/atr_share/fispact-II-r2s
+
+# Use user's variable, if not set try to guess
+if [ -v FISPACT_DATA ]; then
+    # FISPACT_DATA not set. Try to guess from the realpath to fispact-II executable
+    r2s_fispact_data=$(dirname `realpath $r2s_fispact_exe`)
+else
+    r2s_fispact_data="$FISPACT_DATA"    
+fi
+export r2s_fispact_data
 
 # Fispact input files, usually case-independent.
 # Input files for condense and collapse fispact runs are usually
