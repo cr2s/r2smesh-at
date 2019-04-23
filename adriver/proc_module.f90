@@ -32,6 +32,7 @@ module proc
             integer, intent(in), optional:: funit
             integer, intent(out):: istat
 
+            ! TODO: check the following if-then-else structure. Is it needed here? (it is repeated in pr_runp)
             integer:: fu
             if (present(funit)) then
                 fu = funit

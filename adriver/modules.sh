@@ -2,12 +2,15 @@
 
 # Load machine-dependent modules for fortran + mpi 
 
+# TODO: prepare two sets of opts: for debug (with traceback etc) and for production.
+
 host=$(hostname -s)
 case $host in
     "local"*)
         # local laptop
-        fcc=$(which mpif90)
-        opt="-fbacktrace"
+        source /opt/intel/bin/compilervars.sh intel64
+        fcc=$(which mpiifort)
+        opt="-mcmodel=large -debug full -traceback -gen-interfaces -warn interfaces -check -fpe0"
         ;; 
     "fh2"*)
         # forHLR-II
