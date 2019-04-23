@@ -1,29 +1,26 @@
 HOW TO DEPLOY
 ==================
-The following recipe assumes that ``$WORK`` folder is writable. 
 
-Create folder, where exicutables and default files will be copied, clone there the repository and prepare subfolders::
+Steps to deploy:
 
-    > mkdir $WORK/r2smesh
-    > cd $WORK/r2smesh
-    
-    > git clone git@github.com:cr2s/r2smesh-at.git
-    > ln -s r2smesh-at/scripts .
-    > ln -s r2smesh-at/files .
-    > ln -s r2smesh-at/doc/recipe.rst .
+   1. Clone the r2smesh repo
 
-    > mkdir bin
+   2. Compile adriver
 
-Compile ``adriver.exe`` and place link to ``bin`` ::
+   3. Compile modified MCNP 
 
-    > cd r2smesh-at/adriver
-    > ./compile.sh
-    > cd ../../bin
-    > ln -s ../r2smesh-at/adriver/adriver.exe .
+   4. Set R2S_ROOT variable and optionally FISPACT_DATA variable
 
-Compile modified versions of MCNP5 and place links to ``bin/``::
+Scheme to run a calculation:
 
-    > ln -s /path/to/mcnp5-md.mpi  .
-    > ln -s /path/to/mcnp5-dg.mpi  .
+   1. Create working place -- a folder containing ``input`` subfolder (see example)
+      and optional `r2s_env_local.sh`.
 
-    
+   2. Source ``$R2S_ROOT/scripts/r2s_env.sh``. This is the "system-wide" script that
+      sets all necessary variables for adriver to their default values. This script
+      checks if the ``r2s_env_local.sh`` is found in the current folder and sources
+      it as well (thus the user can redefine all default values). 
+
+   3. Start adriver. Either interactively or using a job submission system.
+
+

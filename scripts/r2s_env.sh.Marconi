@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Setup environment variables for r2s
+# Setup default environment variables for r2smesh
 
 ##################################
 #    USAGE NOTE                  #
@@ -16,23 +16,23 @@
 # For details see e.g. 
 # https://superuser.com/questions/176783/what-is-the-difference-between-executing-a-bash-script-vs-sourcing-it 
 
-##################################
-#    CASE-INDEPENDENT variables  #
-##################################
+#####################################
+#    PROBLEM-INDEPENDENT variables  #
+#####################################
 
 # Root folder for the r2s distribution.
 # This variable is used only in this script, as a common part of the path
 # containing executables, default scripts and input files. It is assumed that
 # the user has defined the $R2S_ROOT variable, which points to the default
 # place of r2s distribution.
-if [ ! -v R2S_ROOT ]; then
+if [ -v R2S_ROOT ]; then
+    export r2s_root=$R2S_ROOT
+else    
     # This situation is bad, but exiting the script will not help 
     # (on Marconi it will close the ssh connection, when this script
     # is sourced). Therefore, siply warn the user.
     echo "WARNING: R2S_ROOT variable is undefined. Check if it is guessed correctly"
     export r2s_root=`pwd`
-else    
-    export r2s_root=$R2S_ROOT
 fi
 echo "R2S_ROOT: $r2s_root"
 
@@ -129,20 +129,12 @@ export r2s_inventory_s2=$r2s_scripts/inventory_s2.sh
 # variable defines the folder where all temporary files are written.
 export r2s_scratch='/scratch_local'   # For Marconi nodes
 
-# If several independent runs use the same scratch folder, they will interfere.
-# Ensure that each run gets its own unique scratch folder. Note that the unique
-# folder is created at the moment this script is executed (or sourced),
-# therefore, be sure to source it each time a new driver run is started. A good
-# practice is to source this file just before starting adriver.exe, e.g. in a
-# script.
-# TODO: add ``run_adriver.sh`` script that has two steps: sources this file and runs adriver.
-r2s_scratch=`mktemp -d --tmpdir=$r2s_scratch -t r2s.XXXX`
 
 
 
-##################################
-#    CASE-DEPENDENT variables    #
-##################################
+#####################################
+#    PROBLEM-DEPENDENT variables    #
+#####################################
 
 # Whether to continue previous fispact runs. 
 # When $r2s_continue set to "yes" (case sensitive), the $r2s_out folder will not
@@ -221,3 +213,22 @@ export r2s_cellsmaterials=$r2s_input/cmi_table
 # intensity from $r2s_neutronintensity. Normalization thus depends on the
 # normalization of the correspondent meshtally.  
 export r2s_inventory_input_footer=$r2s_input/inventory_input_footer
+
+# All default values can be changed in the local script, which is sourced here
+if [ -r ./r2s_env_local.sh ]; then
+    source ./r2s_env_local.sh
+    echo "Local configuration file is sourced: `realpath ./r2s_env_local.sh`"
+fi    
+
+
+# If several independent runs use the same scratch folder, they will interfere.
+# Ensure that each run gets its own unique scratch folder. Note that the unique
+# folder is created at the moment this script is executed (or sourced),
+# therefore, be sure to source it each time a new driver run is started. A good
+# practice is to source this file just before starting adriver.exe, e.g. in a
+# script.
+# TODO: add ``run_adriver.sh`` script that has two steps: sources this file and runs adriver.
+r2s_scratch=`mktemp -d --tmpdir=$r2s_scratch -t r2s.XXXX`
+
+echo "Scratch: $r2s_scratch"
+
