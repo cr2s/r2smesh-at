@@ -1,3 +1,8 @@
 *.exe
 *.mod
+example/log*
+example/out*
+example/init*log
+example/cond
+
 
