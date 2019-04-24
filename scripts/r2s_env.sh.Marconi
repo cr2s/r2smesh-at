@@ -214,12 +214,21 @@ export r2s_cellsmaterials=$r2s_input/cmi_table
 # normalization of the correspondent meshtally.  
 export r2s_inventory_input_footer=$r2s_input/inventory_input_footer
 
+
+##############################################
+# Source problem-specific configuration file #
+##############################################
+
 # All default values can be changed in the local script, which is sourced here
 if [ -r ./r2s_env_local.sh ]; then
     source ./r2s_env_local.sh
     echo "Local configuration file is sourced: `realpath ./r2s_env_local.sh`"
 fi    
 
+
+#########################
+# Unique scratch folder #
+#########################
 
 # If several independent runs use the same scratch folder, they will interfere.
 # Ensure that each run gets its own unique scratch folder. Note that the unique
@@ -231,4 +240,55 @@ fi
 r2s_scratch=`mktemp -d --tmpdir=$r2s_scratch -t r2s.XXXX`
 
 echo "Scratch: $r2s_scratch"
+
+
+##########################
+# Check that files exist #
+##########################
+
+# Directories
+for v in r2s_root r2s_scripts; do
+    if [ -d ${!v} ]; then
+        echo "$v: ${!v}"
+    else
+        echo "$v: does not exist"
+    fi
+done
+
+# Fispact
+[ -x $r2s_fispact_exe  ] && r1=$r2s_fispact_exe  || r1="cannot be executed"
+[ -d $r2s_fispact_data ] && r2=$r2s_fispact_data || r2="does not exist"
+echo "r2s_fispact_exe: $r1"
+echo "r2s_fispact_data: $r2"
+
+# Adriver
+[ -x $r2s_driver  ] && r1=$r2s_driver  || r1="cannot be executed"
+echo "r2s_driver: $r1"
+
+
+# Executables and scripts
+scripts="r2s_init_1 r2s_finalize_1 r2s_init_n r2s_finalize_n"
+scripts="$scripts r2s_condense_s1 r2s_condense_s2 r2s_collapse_s1 r2s_collapse_s2"
+scripts="$scripts r2s_inventory_s1 r2s_inventory_s2"
+for v in $scripts; do
+    [ -x ${!v} ] && r=${!v} || r="cannot be executed"
+    echo "$v: $r"
+done    
+
+# Scratch folder
+echo "r2s_scratch: $r2s_scratch"
+
+# Input files for adriver
+for d in r2s_input r2s_out r2s_log; do
+    [ -d ${!d} ] && r=${!d} || r="does not exist"
+    echo "$d: $r"
+done
+files="matallocation neutronintensity neutronspectra matcomposition cellsmaterials"
+files="$files inventory_input_footer"
+for f in $files; do
+    f="r2s_$f"
+    [ -r ${!f} ] && r=${!f} || r="is not readable"
+    echo "$f: $r"
+done
+
 
