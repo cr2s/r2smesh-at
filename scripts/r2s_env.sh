@@ -6,8 +6,9 @@
 #    USAGE NOTE                  #
 ##################################
 
-# This script should be sourced (not executed) to ensure that all variables
-# defined here become available in the current shell. I.e, 
+# This script should be sourced (not executed) from the problem directory to
+# ensure that all variables defined here become available in the current shell.
+# I.e, 
 # 
 #     > . ./r2s_env.sh         # this is correct
 #     > source ./r2s_env.sh    # the same as above
@@ -15,6 +16,14 @@
 #
 # For details see e.g. 
 # https://superuser.com/questions/176783/what-is-the-difference-between-executing-a-bash-script-vs-sourcing-it 
+
+# The environmental variables, the script makes use of:
+# R2S_ROOT -- (optional) path, where all r2smesh-related files are located (i.e. the repository)
+# FISPACT_DATA -- (optional) path to the FISPACT data. If not given, derived from the location of fispact-II executable)
+# R2S_SCRATCH -- (optional) default scratch folder. If not given, ``./scratch`` is used, local to the problem directory.
+
+# Check that this script is sourced, not executed (bash-specific):
+[ $0 = $BASH_SOURCE ] && echo "WARNING: this script must be sourced, not executed."
 
 #####################################
 #    PROBLEM-INDEPENDENT variables  #
@@ -32,16 +41,17 @@ else
     # (on Marconi it will close the ssh connection, when this script
     # is sourced). Therefore, siply warn the user.
     echo "WARNING: R2S_ROOT variable is undefined. Check if it is guessed correctly"
-    export r2s_root=`pwd`
+    r2s_root=`dirname $BASH_SOURCE`/..
+    r2s_root=`realpath $r2s_root`
+    export r2s_root
 fi
-echo "R2S_ROOT: $r2s_root"
 
 # Path to the activation driver executable
-export r2s_driver=$r2s_root/bin/adriver.exe
+export r2s_driver=$r2s_root/adriver/adriver.exe
 
 # Path to the scripts that are called by $r2s_driver. 
 # THese are  initialization and finalization scripts that are usually
-# cluster-dependent, but case-independent, and scripts that prepare fispact
+# cluster-dependent, but problem-independent, and scripts that prepare fispact
 # working folders and run fispact. This variable is used only here to define
 # places of the scripts actually started by the driver (see below).
 export r2s_scripts=$r2s_root/scripts
@@ -76,7 +86,12 @@ export r2s_natab=$r2s_root/files/natural.txt
 # This variable is used in the scripts that actually start fispact for
 # condense, collapse and inventory calculations, see e.g. $r2s_condense_s1
 # variable below.
-export r2s_fispact_exe=`which fispact-II`
+if [ -v FISPACT ]; then
+    r2s_fispact_exe=$FISPACT
+else    
+    r2s_fispact_exe=`which fispact-II`
+fi
+export r2s_fispact_exe
 
 # Path to fispact data.
 # This folder is copied to the local node filesystem by the $r2s_init_n script.
@@ -94,10 +109,10 @@ else
 fi
 export r2s_fispact_data
 
-# Fispact input files, usually case-independent.
+# Fispact input files, usually problem-independent.
 # Input files for condense and collapse fispact runs are usually
-# case-independent. Also the upper part of the inventory input file (i.e.
-# before material composition and irradiation scenario) is case independent. 
+# problem-independent. Also the upper part of the inventory input file (i.e.
+# before material composition and irradiation scenario) is problem-independent. 
 export r2s_condense_input=$r2s_root/files/condense_input
 export r2s_condense_files=$r2s_root/files/condense_files
 export r2s_collapse_input=$r2s_root/files/collapse_input
@@ -108,7 +123,7 @@ export r2s_inventory_files=$r2s_root/files/inventory_files
 # Scripts to prepare fispact workplace and run it.
 # Scripts $r2s_*_s1 prepare fispact workplace and start fispact. Scripts
 # $r2s_*_s2 clean up the workspace (if needed). These scripts are usually
-# case-independent, until the user wants to preserve fispact workplaces for
+# problem-independent, until the user wants to preserve fispact workplaces for
 # post-mortem debugging or extracting additional information from fispact
 # results.
 export r2s_condense_s1=$r2s_scripts/condense_s1.sh
@@ -127,7 +142,12 @@ export r2s_inventory_s2=$r2s_scripts/inventory_s2.sh
 # above on Marconi), the use of node local filesystem for such files is much
 # more effective, as copmared to the use of the common file system. This
 # variable defines the folder where all temporary files are written.
-export r2s_scratch='/scratch_local'   # For Marconi nodes
+if [ -v R2S_SCRATCH ]; then 
+    r2s_scratch=$R2S_SCRATCH
+else    
+    r2s_scratch='./scratch'
+fi
+export r2s_scratch=`realpath $r2s_scratch`
 
 
 
@@ -144,7 +164,7 @@ export r2s_scratch='/scratch_local'   # For Marconi nodes
 export r2s_continue=yes  # "yes" is case sensitive. 
 # export r2s_continue=no   # any other value means "no".
 
-# Folder with the case data.
+# Folder with the problem data.
 # This variable is used only here to provide common part to other variables.
 export r2s_input=$(realpath ./input)
 
@@ -220,10 +240,15 @@ export r2s_inventory_input_footer=$r2s_input/inventory_input_footer
 ##############################################
 
 # All default values can be changed in the local script, which is sourced here
+echo "************************************************************"
 if [ -r ./r2s_env_local.sh ]; then
     source ./r2s_env_local.sh
     echo "Local configuration file is sourced: `realpath ./r2s_env_local.sh`"
 fi    
+
+# Ensure that absolute path for scratch is used
+r2s_scratch=`realpath $r2s_scratch` 
+
 
 
 #########################
@@ -237,9 +262,9 @@ fi
 # practice is to source this file just before starting adriver.exe, e.g. in a
 # script.
 # TODO: add ``run_adriver.sh`` script that has two steps: sources this file and runs adriver.
+mkdir -p $r2s_scratch
 r2s_scratch=`mktemp -d --tmpdir=$r2s_scratch -t r2s.XXXX`
 
-echo "Scratch: $r2s_scratch"
 
 
 ##########################
