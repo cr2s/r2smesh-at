@@ -1,6 +1,6 @@
-# KIT implementation, Dec 2017
+# Origin
 This implementation is written from scratch, but in some aspects mimics the
-original R2Smesh.
+R2Smesh developed in KIT/INR in 2005 (?) -- 2014.
 
 A short recipe how to start calculations can be found in the
 [recipe](doc/recipe.rst) and [deploy](/deploy.rst).
