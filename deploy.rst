@@ -16,11 +16,11 @@ INSTALLATION INSTRUCTIONS
       >cd ~/work
       >git clone git@github.com:cr2s/r2smesh-at.git
       
-   The latter command puts the content of this repository to the ``work/r2smesh-at`` folder in your account. 
+   These commands put the content of this repository to the ``work/r2smesh-at`` folder in your account. 
 
 
 2. Compile the activation driver. Currently, the Intel fortran together with
-   the Intel MPI implementation is required. The `adriver/compile.sh`_ script
+   the Intel MPI implementation is required. The `<adriver/compile.sh>`_ script
    contains presets for compilation instructions for several machines, among
    them the Marconi cluster and a local linux machine with Intel Fortran and
    intel-MPI installed to their default places::
@@ -51,10 +51,10 @@ INSTALLATION INSTRUCTIONS
 
 4. Test the activation driver
 
-   The `example`_ folder contains an example set of the files necessary to run the
+   The `<example>`_ folder contains an example set of the files necessary to run the
    activation driver, i.e. it is assumed that the neutron transport and material
    detection steps are already completed and their results are processed properly
-   to get all necessary input files. Details how the input files are prepared see in `docs`_. 
+   to get all necessary input files. Details how the input files are prepared see in `<docs>`_. 
 
    By default, all problem-specific files necessary to perform activation
    calculations are placed in the ``input`` subfolder. It contains neutron flux
@@ -64,7 +64,7 @@ INSTALLATION INSTRUCTIONS
    results. 
 
    Location of all files required by the activation driver (their path and
-   names) are defined via environment variables. The ``scripts/r2s_env.sh``
+   names) are defined via environment variables. The `<scripts/r2s_env.sh>`_
    initialization script, sourced from the activation driver working directory
    provides their default values. 
 
@@ -97,7 +97,7 @@ INSTALLATION INSTRUCTIONS
    intensity are mentioned. 
 
    To prepare a decay gamma source for particular irradiation step, the separate ``cgi.*`` files 
-   must be processed with the `scripts/form_dgs.sh`_ script, which takes the name of the folder where ``cgi.*`` files are located and 
+   must be processed with the `<scripts/form_dgs.sh>`_ script, which takes the name of the folder where ``cgi.*`` files are located and 
    a list of irradiation step numbers, for whose the decay gamma source files must be prepared. ::
 
       > scripts/form_dgs.sh out 45 46 47
@@ -110,9 +110,9 @@ INSTALLATION INSTRUCTIONS
    
 5. Apply MCNP patches 
 
-   The files describing material spatial distribution and isotopic compositions (these are the input files for the activation driver; their default names are ``input/fine_mesh_content`` and ``input/mat_table``) can be prepared with the version of MCNP5 modified with ``mcnp-mod/kit-materials.patch.5``. 
+   The files describing material spatial distribution and isotopic compositions (these are the input files for the activation driver; their default names are ``input/fine_mesh_content`` and ``input/mat_table``) can be prepared with the version of MCNP5 modified with `<mcnp-mod/kit-materials.patch.5>`_. 
    
-   The ``dgs.NN`` files contain spatial and spectral distribution of the decay gamma source. They can be read directly to MCNP5 with the custom source subroutine provided in the ``mcnp-mod/kit-gamma.patch.5`` patch. 
+   The ``dgs.NN`` files contain spatial and spectral distribution of the decay gamma source. They can be read directly to MCNP5 with the custom source subroutine provided in the `<mcnp-mod/kit-gamma.patch.5>`_ patch. 
    
    TODO: describe how to apply the patches.
 
