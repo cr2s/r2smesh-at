@@ -101,7 +101,17 @@ correspondent coarse mesh element. After successfull run, the ``out`` folder
 contains files for each coarse mesh element where activation calculations were
 necessary (i.e.  where non-void cells were irradiated with non-zero neutron
 flux and activated material has non-zero gamma source at particular time
-interval).
+interval). 
+
+UPD: A complete ``cgi`` file ends with the line containing single underscore
+character ``_``. This line can be considered as a marker for the completeness
+of the ``cgi`` file. The situation when  an ``cgi`` file exists but its last
+line is not ``_`` means that the writing process was interrupted and there are
+chances that not all information was written to this ``cgi``. Such files must
+be discarded (deleted) and the activation driver started anew, with the
+``r2s_continue`` variable set to ``yes`` (set this in the ``r2s_env_local.sh``
+script). A list of cgi files without the ``_`` completeness marker can be
+obtained with the `<../scripts/check_cgi.sh>`_ script. 
 
 Log information from each MPI process is written to ``log/log.i`` file, where
 ``i`` is the process id (0 for the master process that reads all input data and
@@ -109,7 +119,14 @@ distributes job, and 1 to N-1 for the slave processes that actually start
 fispact, where N is the number of MPI processes).
 
 When the driver completes succesfully, the master log file ``log/log.0`` contains at the last line 
-``========== 2019/04/26 00:10:31 Program completed``. Now, the ``out/cgi*`` files must be postprocessed to obtain decay gamma sources for particular irradiation time. The `<../scripts/form_dgs.sh>`_ script accomplishes this task. It requires the folder with cgi files as the 1-st command line argument, followed by the irradiation time step indices. The script generates ``dgs.NN`` files, where `NN`` corresponds to the irradiation time step index. ::
+``========== 2019/04/26 00:10:31 Program completed``.
+
+As the next step, the ``out/cgi*`` files must be postprocessed to obtain decay
+gamma sources for particular irradiation time. The `<../scripts/form_dgs.sh>`_
+script accomplishes this task. It requires the folder with cgi files as the
+1-st command line argument, followed by the irradiation time step indices. The
+script generates ``dgs.NN`` files, where `NN`` corresponds to the irradiation
+time step index. ::
 
     > ~/work/r2smesh-at/scripts/form_dgs.sh out 45 46     # form sources for time intervals 45 and 46 from files in out
 
