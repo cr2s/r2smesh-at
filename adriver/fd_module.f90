@@ -133,6 +133,7 @@ module fispactdriver
             end if
         end do
         ! TODO print additional mark here that can be used to check that the whole cgi is written out completely.
+        write(pr_scw, '(a1)'), '_'
         close(pr_scw)
         return
     end subroutine write_cgi
