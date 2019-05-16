@@ -10,15 +10,5 @@ A short recipe how to start calculations can be found in the
 [recipe](doc/recipe.rst) and [deploy](/deploy.rst).
 
 
-
-# Note for collaborators
-Current github policy allows only two types of access rights for private
-repositories, owned by a user account: (1) the owner and (2) the collaborator.
-Both have rights to write directly to the repository. 
-
-Instead of directly introducing changes to this repository, the proposed way
-for collaborators is to fork this repository, make chages to the forked repo
-and make pull requests from the forked repo to this one. In this way only
-accepted pull requests (i.e. reviewed code changes) will appear here.
-
-Contact the owner (currently <anton.travleev@gmail.com>) for any questions.
+# Development
+Feel free to propose a new feature by adding an issue with the `enhancement` label. As examples, look to already existing [proposals](https://github.com/cr2s/r2smesh-at/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement). Alternatively (e.g. if you don't have the github account), contact the development team directly: <r2smesh@gmail.com>
